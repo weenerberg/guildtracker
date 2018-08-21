@@ -15,7 +15,7 @@ from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
 from shutil import copy, copyfile
 
-def load_config(filename):
+def load_config(filename="config.yml"):
     print("Loading config file: " + filename)
     with open(filename, 'r') as ymlfile:
         return yaml.load(ymlfile)
