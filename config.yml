@@ -1,8 +1,14 @@
 isProd: false
 dpxBasePath: /swgoh/GuildTracker/
+discord:
+    username: Big bro
+    arenaranks: 
+        text: "Below is the {} arena ranks per {}: \n\n"
 global:
     unitMappings:
         url: https://swgoh.gg/api/characters/
+    zetaReviews:
+        url: https://script.google.com/macros/s/AKfycbyq_SH4OpcbAyEGtG4ysRrvvqr4jYihrfTgQyOHfUFhR2pVYYM/exec
 guilds:
     -
         name: SSAinVaders
