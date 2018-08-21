@@ -177,6 +177,7 @@ def getCLIArguments():
     parser.add_argument('--send-discord', action="store_true", default=False)
     parser.add_argument('--upload-dbx', action="store_true", default=False)
     parser.add_argument('--config', action="store")
+    parser.add_argument('--env-config', action="store")
     parser.add_argument('--prod', action="store_true", default=False)
     parser.add_argument('--debug', action="store_true", default=False)
 
@@ -238,13 +239,14 @@ def setup_logging():
 #   Main                     #
 ##############################
 
-TOKEN = 'oz6HQkiu3aYAAAAAAACVg3geyyeGy3-hoNlmFzcGgyDwtX7PBShpNyiSn3zzUma2'
-
-logger = setup_logging()
-
 # Get CLI and config file configuration
 args = getCLIArguments()
 cfg = load_config(args['config'])
+
+user_cfg = args['env_config']
+TOKEN = user_cfg['token']
+
+logger = setup_logging()
 logger.debug(print(cfg))
 
 guild = args['guild']
