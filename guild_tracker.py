@@ -13,8 +13,9 @@ from operator import itemgetter
 import dropbox
 from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
+from shutil import copy, copyfile
 
-def load_config(filename='config_0.2.3.yml'):
+def load_config(filename):
     print("Loading config file: " + filename)
     with open(filename, 'r') as ymlfile:
         return yaml.load(ymlfile)
@@ -162,6 +163,19 @@ def write_units_to_file(timestamp,headers,toons,filepath,filename):
 
             newFile.writerow([timestamp, player['player'].encode("utf8"), toon, url_str, player['combat_type'], player['rarity'], player['level'], gear_level_str, player['power']])
 
+def write_unit_mappings_to_file(timestamp,headers,toons,filepath,filename):
+    if not os.path.exists(filepath):
+        print("Creating new folder: " + filepath)
+        os.makedirs(filepath)
+
+    print("Writing file: " + filepath + filename)
+
+    newFile = csv.writer(open(filepath + filename, "w"),lineterminator='\n')
+    newFile.writerow(headers)
+
+    for toon in toons:
+        newFile.writerow([timestamp, toon['name'], toon['base_id'], toon['combat_type'], toon['power']])
+
 
 #def validateGuildConfig(cfg,guild_string):
 
@@ -171,7 +185,7 @@ def getCLIArguments():
     parser.add_argument('--guild', action="store", required=True)
     parser.add_argument('--zetas', action="store_true", default=False)
     parser.add_argument('--units', action="store_true", default=False)
-    parser.add_argument('--arenarank', action="store_true", default=False)
+    parser.add_argument('--arenaranks', action="store_true", default=False)
     parser.add_argument('--unit-mappings', action="store_true", default=False)
     parser.add_argument('--save-file', action="store_true", default=False)
     parser.add_argument('--send-discord', action="store_true", default=False)
@@ -227,7 +241,7 @@ def upload_file_to_dropbox(token,file,dbx_path):
 
 def setup_logging():
     # Setup logging
-    logger = logging.getLogger('report_generator')
+    logger = logging.getLogger(__name__)
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -243,11 +257,13 @@ def setup_logging():
 args = getCLIArguments()
 cfg = load_config(args['config'])
 
-user_cfg = args['env_config']
+user_cfg = load_config(args['env_config'])
 TOKEN = user_cfg['token']
 
 logger = setup_logging()
+
 logger.debug(print(cfg))
+logger.debug("Token: " + TOKEN)
 
 guild = args['guild']
 guild_config = get_guild_config(cfg, guild)
@@ -264,48 +280,66 @@ entry_timestamp = timestamp.strftime(ENTRY_TS_FORMAT)
 report_timestamp = timestamp.strftime(REPORT_TS_FORMAT)
 
 #Configure input and output
-output_base_path = cfg['outputBasePath']
-guild_output_base_path = output_base_path + guild + "/"
+output_file_prefix = "" if args['prod'] else "TEST_"
+output_folder_prefix = "" if args['prod'] else "TEST/"
 
+output_path_root = cfg['outputBasePath'] + output_folder_prefix
+output_path_archive = output_path_root + "archive/"
+output_path_archive_datasources = output_path_archive + "datasources/"
+output_path_datasources = output_path_root + "datasources/"
+
+dpx_output_path_root = cfg['dpxBasePath'] + output_folder_prefix
+dpx_output_path_archive = dpx_output_path_root + "archive/"
+dpx_output_path_archive_datasources = dpx_output_path_archive + "datasources/"
+dpx_output_path_datasources = dpx_output_path_root + "datasource/"
 
 #
 # Get Zetas
 #
 if args['zetas']:
-    print("Scraping zetas...")
+    logger.debug("Scraping zetas...")
     url = guild_config['zetas']['url']
     players = get_zetas(url)
-    if args['save_file']:
-        print("--Writing to file...")
-        output_folder = guild_output_base_path + "zetas/"
-        output_file = guild + "_zetas" + "_" + file_timestamp + '.csv'
-        headers = ["timestamp", "player", "toon", "zeta"]
-        write_zetas_to_file(entry_timestamp, headers, players, output_folder, output_file)
 
-    if args['upload_dbx']:
-        print("--Uploading file to Dropbox...")
-        output_folder = guild_output_base_path + "zetas/"
-        output_file = guild + "_zetas" + "_" + file_timestamp + '.csv'
-        upload_file_to_dropbox(TOKEN,output_folder + output_file, "/a")
+    if args['save_file']:
+        logger.debug("--Writing to file...")
+
+        output_folder = output_path_datasources + "zetas/"
+        output_filename = output_file_prefix + guild + "_zetas" + "_" + file_timestamp + '.csv'
+        headers = ["timestamp", "player", "toon", "zeta"]
+
+        write_zetas_to_file(entry_timestamp, headers, players, output_folder, output_filename)
+
+        if args['upload_dbx']:
+            dpx_dest = dpx_output_path_datasources + "zetas/" + output_filename
+
+            logger.info("--Uploading file to Dropbox...")
+            upload_file_to_dropbox(TOKEN, output_folder + output_filename, dpx_dest)
 #
 # Get Arena Rank
 #
-if args['arenarank']:
-    print("Scraping arena rank...")
+if args['arenaranks']:
+    logging.debug("Scraping arena ranks...")
 
-    url = guild_config['arenarank']['url']
+    url = guild_config['arenaranks']['url']
     noPlayers = 0 if args['prod'] else 2
     players = get_arena_ranks(url, noPlayers)
 
     if args['save_file']:
-        print("--Writing to file...")
-        output_folder = guild_output_base_path + "arenarank/"
-        output_file = guild + "_arenarank" + "_" + file_timestamp + '.csv'
+        logging.debug("--Writing to file...")
+        output_folder = output_path_datasources + "arenaranks/"
+        output_filename = output_file_prefix + guild + "_arenaranks" + "_" + file_timestamp + '.csv'
         headers = ["timestamp", "player", "url", "arenarank"]
-        write_arenarank_to_file(entry_timestamp, headers, players, output_folder, output_file)
+        write_arenarank_to_file(entry_timestamp, headers, players, output_folder, output_filename)
+
+        if args['upload_dbx']:
+            dpx_dest = dpx_output_path_datasources + "arenaranks/" + output_filename
+
+            logger.info("--Uploading file to Dropbox...")
+            upload_file_to_dropbox(TOKEN, output_folder + output_filename, dpx_dest)
 
     if args['send_discord']:
-        print("--Writing to Discord...")
+        logging.debug("--Writing to Discord...")
         text = gen_arenarank_report_text(players, report_timestamp)
         discord_webhook_url = guild_config['discordReportingWebhook-prod'] if args['prod'] else guild_config['discordReportingWebhook-test']
         send_discord_report(discord_webhook_url, text)
@@ -314,31 +348,54 @@ if args['arenarank']:
 # Get Guild Units
 #
 if args['units']:
-    print("Scraping guildUnits...")
+    logging.debug("Scraping guildUnits...")
 
     url = guild_config['guildUnits']['url']
     toons = get_units(url)
 
     if args['save_file']:
-        print("--Writing to file...")
-        output_folder = guild_output_base_path + "guildUnits/"
-        output_file = guild + "_guildUnits" + "_" + file_timestamp + '.csv'
+        logging.debug("--Writing to file...")
+        output_folder = output_path_datasources + "units/"
+        output_filename = output_file_prefix + guild + "_units" + "_" + file_timestamp + '.csv'
         headers = ["timestamp", "player", "toon", "url", "combat_type", "rarity", "level", "gear_level", "power"]
-        write_units_to_file(entry_timestamp, headers, toons, output_folder, output_file)
+        write_units_to_file(entry_timestamp, headers, toons, output_folder, output_filename)
 
+        if args['upload_dbx']:
+            dpx_dest = dpx_output_path_datasources + "units/" + output_filename
+
+            logger.info("--Uploading file to Dropbox...")
+            upload_file_to_dropbox(TOKEN, output_folder + output_filename, dpx_dest)
 
 #
 # Get Guild Units
 #
 if args['unit_mappings']:
-    print("Scraping unit mappings...")
+    logging.debug("Scraping unit mappings...")
 
     url = cfg['global']['unitMappings']['url']
-    toons = get_units(url)
+    toons = get_units_mapping(url)
 
     if args['save_file']:
-        print("--Writing to file...")
-        output_folder = guild_output_base_path + "guildUnits/"
-        output_file = guild + "_guildUnits" + "_" + file_timestamp + '.csv'
-        headers = ["timestamp", "player", "toon", "url", "combat_type", "rarity", "level", "gear_level", "power"]
-        write_units_to_file(entry_timestamp, headers, toons, output_folder, output_file)
+        logging.debug("--Writing to file...")
+        archive_output_folder = output_path_archive_datasources + "unitMappings/"
+        archive_output_filename = output_file_prefix + "unitMappings" + "_" + file_timestamp + '.csv'
+        output_folder = output_path_datasources + "unitMappings/"
+        output_filename = output_file_prefix + "unitMappings.csv"
+
+        headers = ["timestamp", "name", "base_id", "combat_type", "power"]
+        write_unit_mappings_to_file(entry_timestamp, headers, toons, archive_output_folder, archive_output_filename)
+
+        logging.debug("Copying file from: " + archive_output_folder + archive_output_filename + " to " + output_folder + output_filename)
+        if not os.path.exists(output_folder):
+            logging.debug("Creating new folder: " + output_folder)
+            os.makedirs(output_folder)
+
+        copy(archive_output_folder + archive_output_filename, output_folder + output_filename)
+
+        if args['upload_dbx']:
+            dpx_archive_dest = dpx_output_path_archive_datasources + "unit_mappings/" + archive_output_filename
+            dpx_dest = dpx_output_path_datasources + "unit_mappings/" + output_filename
+
+            logger.info("--Uploading file to Dropbox...")
+            upload_file_to_dropbox(TOKEN, archive_output_folder + archive_output_filename, dpx_archive_dest)
+            upload_file_to_dropbox(TOKEN, output_folder + output_filename, dpx_dest)
