@@ -257,8 +257,8 @@ def setup_logging():
 args = getCLIArguments()
 cfg = load_config(args['config'])
 
-user_cfg = load_config(args['env_config'])
-TOKEN = user_cfg['token']
+env_cfg = load_config(args['env_config'])
+TOKEN = env_cfg['token']
 
 logger = setup_logging()
 
@@ -283,7 +283,7 @@ report_timestamp = timestamp.strftime(REPORT_TS_FORMAT)
 output_file_prefix = "" if args['prod'] else "TEST_"
 output_folder_prefix = "" if args['prod'] else "TEST/"
 
-output_path_root = cfg['outputBasePath'] + output_folder_prefix
+output_path_root = env_cfg['outputBasePath'] + output_folder_prefix
 output_path_archive = output_path_root + "archive/"
 output_path_archive_datasources = output_path_archive + "datasources/"
 output_path_datasources = output_path_root + "datasources/"

@@ -1,12 +1,8 @@
 isProd: false
-outputBasePath: C:/Users/mawe/test/
 dpxBasePath: /swgoh/GuildTracker/
 global:
     unitMappings:
         url: https://swgoh.gg/api/characters/
-        writeReportsToFile: true
-        writeReportToDiscord: false
-
 guilds:
     -
         name: SSAinVaders
@@ -14,13 +10,7 @@ guilds:
         discordReportingWebhook-prod: https://discordapp.com/api/webhooks/479589852682256385/WNWSi19RfEi1jD5ZLjuUfXnAuBO6JPUJq0rJktqqM_YwWv5x4lG3L3-OJ1i1NcuYLYa2
         arenaranks:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/
-            writeReportsToFile: true
-            writeReportToDiscord: true
         zetas:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/zetas/
-            writeReportsToFile: true
-            writeReportToDiscord: false
         guildUnits:
             url: https://swgoh.gg/api/guilds/27199/units/
-            writeReportsToFile: true
-            writeReportToDiscord: false
