@@ -128,9 +128,9 @@ def get_units_mapping(url):
 #
 #
 def get_zeta_reviews(url):
-    fixed_response = requests.get(url).text.encode("utf-8")
-    logging.debug(fixed_response)
-    return json.loads(fixed_response)
+    response = requests.get(url)
+    logging.debug(response)
+    return json.loads(response.content.decode('utf-8'))
 
 #
 #
