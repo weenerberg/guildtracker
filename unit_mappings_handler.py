@@ -5,17 +5,17 @@ import csv
 from utils import setup_new_datasource_file
 from datasource_handler import DatasourceHandler
 
-logger = logging.getLogger('guildtracker.unitshandler')
+logger = logging.getLogger('guildtracker.unitmappingshandler')
 
-class UnitsHandler(DatasourceHandler):
+class UnitMappingsHandler(DatasourceHandler):
 
-	HEADERS = ["timestamp", "player", "toon", "zeta"]
-	MODULE_NAME = "units"
+	HEADERS = ["timestamp", "name", "base_id", "combat_type", "power"]
+	MODULE_NAME = "unitMappings"
 
 	def __init__(self, url, filename_prefix, ws_base_path, dbx_base_path, ds_folder, archive_folder, dbx_token, webhook, is_test):
 		super().__init__(url, filename_prefix, ws_base_path, dbx_base_path, ds_folder, archive_folder, dbx_token, webhook, is_test)
 		self.request_data()
-		
+
 	def get_module_name(self):
 		return self.MODULE_NAME
 
@@ -26,14 +26,10 @@ class UnitsHandler(DatasourceHandler):
 		super().request_data()
 		self.data = requests.get(self.url).json()
 
-	def write_data_to_file_helper(self, csv_writer):
-		for toon, players in self.data.items():
-			for player in players:
-				# Ships doesn't have a gear level or url
-				gear_level_str = player['gear_level'] if player['combat_type'] == 1 else ""
-				url_str = player['url'] if player['combat_type'] == 1 else ""
 
-				csv_writer.writerow([self.get_entry_timestamp(), player['player'].encode("utf8"), toon, url_str, player['combat_type'], player['rarity'], player['level'], gear_level_str, player['power']])
+	def write_data_to_file_helper(self, csv_writer):
+		for toon in self.data:
+			csv_writer.writerow([self.get_entry_timestamp(), toon['name'], toon['base_id'], toon['combat_type'], toon['power']])
 
 	def generate_report_text(self, prefix, suffix):
 	    pass

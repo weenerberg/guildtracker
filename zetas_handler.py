@@ -1,38 +1,37 @@
 import logging
+import requests
+import csv
 from bs4 import BeautifulSoup as bs
 import re
 import requests
 from utils import setup_new_datasource_file
-from datetime import datetime
-import dropbox
-from dropbox.files import WriteMode
-from dropbox.exceptions import ApiError, AuthError
+from datasource_handler import DatasourceHandler
 
 logger = logging.getLogger('guildtracker.zetashandler')
 
-class ZetasHandler(object):
+class ZetasHandler(DatasourceHandler):
 
 	HEADERS = ["timestamp", "player", "toon", "zeta"]
 	MODULE_NAME = "zetas"
 
-	FILE_TS_FORMAT = "%Y-%m-%d_%H-%M-%S"
-	ENTRY_TS_FORMAT = "%Y-%m-%d %H:%M:%S"
-	REPORT_TS_FORMAT = "%Y-%m-%d"
-	
-	def __init__(self, url, filepath, filename_prefix, token, dbx_path):
-		self.url = url
+	def __init__(self, url, guild, ws_base_path, dbx_base_path, ds_folder, archive_folder, dbx_token, webhook=None, is_test=False):
+		super().__init__(url, guild, ws_base_path, dbx_base_path, ds_folder, archive_folder, dbx_token, webhook, is_test)
 		self.request_data()
-		self.filepath = filepath + ZetasHandler.MODULE_NAME + "/"
-		self.filename = filename_prefix + "_" + ZetasHandler.MODULE_NAME + "_" + self.request_timestamp.strftime(ZetasHandler.FILE_TS_FORMAT) + '.csv'
-		self.token = token
-		self.dbx_path = dbx_path + ZetasHandler.MODULE_NAME + "/" + self.filename
+
+	def get_module_name(self):
+		return self.MODULE_NAME
+
+	def get_headers(self):
+		return self.HEADERS
 
 	def request_data(self):
-		self.request_timestamp = datetime.now()
+		super().request_data()
 		
-		zeta_data = requests.get(self.url)
-		zeta_parser = bs(zeta_data.content, 'lxml')
-		zetas_raw = zeta_parser.find_all('td'.split(), {"data-sort-value" : re.compile('.*')})
+		print(self.get_module_name() + ": Request data")
+		
+		data = requests.get(self.url)
+		parser = bs(data.content, 'lxml')
+		zetas_raw = parser.find_all('td'.split(), {"data-sort-value" : re.compile('.*')})
 
 		players = []
 		for player_zetas_raw in zetas_raw:
@@ -54,44 +53,14 @@ class ZetasHandler(object):
 			player = { 'name': player_name, 'toons': player_toons }
 			players.append(player)
 
-		self.players = players
+		self.data = players
 
-    #
-	#
-	#
-	def write_data_to_file(self):
-		csv_writer = setup_new_datasource_file(ZetasHandler.HEADERS, self.filepath, self.filename)
-		entry_timestamp = self.request_timestamp.strftime(ZetasHandler.ENTRY_TS_FORMAT)
 
-		for player in self.players:
+	def write_data_to_file_helper(self, csv_writer):
+		for player in self.data:
 			for toon in player['toons']:
 				for zeta in toon['zetas']:
-					csv_writer.writerow([entry_timestamp, player['name'], toon['toon_name'], zeta])
+					csv_writer.writerow([self.get_entry_timestamp(), player['name'], toon['toon_name'], zeta])
 
-  	#
-  	#
-    #
-	def upload_file_to_dropbox(self):
-	    logger.debug("Creating a Dropbox object...")
-	    dbx = dropbox.Dropbox(self.token)
-
-	    try:
-	        dbx.users_get_current_account()
-	    except AuthError as err:
-	        sys.exit("ERROR: Invalid access token; try re-generating an "
-	            "access token from the app console on the web.")
-
-	    with open(self.filepath + self.filename, 'rb') as f:
-	        logger.debug("Uploading " + self.filepath + self.filename + " to Dropbox as " + self.dbx_path + "...")
-	        try:
-	            dbx.files_upload(f.read(), self.dbx_path, mode=WriteMode('overwrite'))
-	        except ApiError as err:
-	            if (err.error.is_path() and
-	                    err.error.get_path().reason.is_insufficient_space()):
-	                sys.exit("ERROR: Cannot back up; insufficient space.")
-	            elif err.user_message_text:
-	                logger.debug(err.user_message_text)
-	                sys.exit()
-	            else:
-	                logger.debug(err)
-	                sys.exit()
+	def generate_report_text(self, prefix, suffix):
+	    pass
