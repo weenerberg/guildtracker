@@ -59,7 +59,7 @@ class ArenaRanksHandler(DatasourceHandler):
 
 				player = {
 					'name': name,
-					'url': url,
+					'url': url + 'collection/',
 					'arenarank': int(arenarank)
 				}
 				players.append(player)
@@ -70,7 +70,7 @@ class ArenaRanksHandler(DatasourceHandler):
 
 	def write_data_to_file_helper(self, csv_writer):
 		for player in self.data:
-			csv_writer.writerow([self.get_entry_timestamp(), player['name'].encode("utf8"), player['url'], player['arenarank']])
+			csv_writer.writerow([self.get_entry_timestamp(), player['name'], player['url'], player['arenarank']])
 
 
 	def generate_report_text(self, prefix, suffix):

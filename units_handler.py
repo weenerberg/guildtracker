@@ -33,7 +33,7 @@ class UnitsHandler(DatasourceHandler):
 				gear_level_str = player['gear_level'] if player['combat_type'] == 1 else ""
 				url_str = player['url'] if player['combat_type'] == 1 else ""
 
-				csv_writer.writerow([self.get_entry_timestamp(), player['player'].encode("utf8"), toon, url_str, player['combat_type'], player['rarity'], player['level'], gear_level_str, player['power']])
+				csv_writer.writerow([self.get_entry_timestamp(), player['player'], toon, url_str, player['combat_type'], player['rarity'], player['level'], gear_level_str, player['power']])
 
 	def generate_report_text(self, prefix, suffix):
 	    pass
