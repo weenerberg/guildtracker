@@ -66,20 +66,16 @@ class DatasourceHandler(ABC):
 		pass
 
 	def execute(self, save_file, archive_file, upload_dbx, send_discord=False):
-		print("--------------Executing " + self.get_module_name() + "----------")
-		#self.request_data()
-
+		logger.debug("--------------Executing " + self.get_module_name() + "----------")
+		
 		if save_file:
-			print(self.get_module_name() + ": Save File")
 			self.write_data_to_file(archive_file)
 			if upload_dbx:
-				print(self.get_module_name() + ": Upload Dbx")
 				self.upload_file_to_dropbox(archive_file)
 		if send_discord:
-			print(self.get_module_name() + ": Send Discord")
 			self.send_discord_report()
 
-		print("--------------DONE!----------")
+		logger.debug("--------------DONE!----------")
 
 	#
 	#
@@ -87,7 +83,7 @@ class DatasourceHandler(ABC):
 	@abstractmethod
 	def request_data(self):
 		self.__request_timestamp = datetime.now()
-		print("DS: " + ": Request data")
+
     #
 	#
 	#
@@ -106,6 +102,7 @@ class DatasourceHandler(ABC):
 	@abstractmethod
 	def write_data_to_file_helper(self, csv_writer):
 		pass
+
 	#
 	#
 	#
@@ -114,6 +111,7 @@ class DatasourceHandler(ABC):
 
 	    if archive_file:
 	    	self.__upload_file_to_dropbox_helper(self.__dbx_token, self.get_archive_path() + self.get_filename(archive_file), self.get_dbx_archive_path() + self.get_filename(archive_file) )
+
 
 	def __upload_file_to_dropbox_helper(self, token, src_file, dst_file):
 		logger.debug("Creating a Dropbox object...")
@@ -145,6 +143,7 @@ class DatasourceHandler(ABC):
 	def generate_report_text(self, prefix, suffix):
 		pass
 
+
 	def send_discord_report(self, username, prefix = "", suffix = ""):
 		prefix = prefix.format(self.__guild, self.get_report_timestamp())
 		text = self.generate_report_text(prefix, suffix)
@@ -155,4 +154,3 @@ class DatasourceHandler(ABC):
 		}
 		res = requests.post(self.__webhook, data=data)
 		logger.debug(res.text)
-

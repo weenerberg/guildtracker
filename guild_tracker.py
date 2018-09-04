@@ -87,10 +87,8 @@ guilds = []
 if not guild:
     print("No guild specified. Executing all guilds from config.")
     guilds = cfg['guilds']
-    print(guilds)
 else:
     guilds = get_guild_config(cfg, guild)
-    print(guilds)
 
 for guild_config in guilds:
     guild = guild_config['name']
