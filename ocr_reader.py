@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 from os import listdir, walk, rename, makedirs
 from os.path import isfile, isdir, join, dirname, basename, splitext, exists, realpath, normpath
+from shutil import copy, copyfile
 import subprocess
 import logging
 import argparse
 import yaml
+from PIL import Image
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -74,18 +76,48 @@ for event_type_folder in list(folders_in(BASE_PATH)):
 				filename, file_extension = splitext(filename_w_ext)
 
 				input_file = '/'.join(event_score_file.split('\\'))
-				print(input_file)
+				print("convert input: " + input_file)
 				output_file = event_score_type + "/preprocessed/" + filename + "_preprocessed" + file_extension
 				output_file = '/'.join(output_file.split('\\'))
-				print(output_file)
+				print("convert output: " + output_file)
 
 				output_filepath = dirname(realpath(output_file))
 				if not exists(output_filepath):
 					makedirs(output_filepath)
+
 				cmd = ["C:/Program Files/ImageMagick-7.0.8-Q16/convert", input_file, "-colorspace", "gray", "-negate", "-morphology", "close", "diamond", "-threshold", "55%", output_file]
 				fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 				stdout, stderr = fconvert.communicate()
 				assert fconvert.returncode == 0, stderr
+
+				tesseract_inputfile = output_file
+				tesseract_output_file = event_score_type + "/ocred/" + filename  + ".txt"
+				tesseract_output_file = '/'.join(tesseract_output_file.split('\\'))
+				tesseract_output_filepath = dirname(realpath(tesseract_output_file))
+				if not exists(tesseract_output_filepath):
+					makedirs(tesseract_output_filepath)
+
+
+				im = Image.open(tesseract_inputfile)
+				copy_infile = "config/sith_score_" + str(im.size[0]) +"x" + str(im.size[1]) + ".uzn"
+				copy_outfile = output_filepath + "/" + filename + "_preprocessed" + ".uzn"
+				print("Copy input: " + copy_infile)
+				print("Copy output: " + copy_outfile)
+				copy(copy_infile, copy_outfile)
+
+				tesseract = "C:/Users/mawe/Downloads/tesseract-4.0.0-alpha/tesseract"
+				user_words = "C:/Users/mawe/Dropbox (Personal)/python/guildtracker/config/eng.user-words"
+				print ("In: " + tesseract_inputfile)
+				print ("Out: " + tesseract_output_file)
+
+				if False:
+					cmd = [tesseract, tesseract_inputfile, tesseract_output_file, "-l", "eng", "--user-words", user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F","--psm", "4", output_file]
+					fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+					stdout, stderr = fconvert.communicate()
+					assert fconvert.returncode == 0, stderr
+				else:
+ 					copy("test/dummy_tess", tesseract_output_file) 
+
 # poll dbx folder for batches of screenshots
 
 # for each file in a batch
