@@ -9,7 +9,7 @@ logger = logging.getLogger('guildtracker.unitshandler')
 
 class UnitsHandler(DatasourceHandler):
 
-	HEADERS = ["timestamp", "player", "toon", "zeta"]
+	HEADERS = ["timestamp", "player", "toon", "url", "combat_type", "rarity", "level", "gear", "power"]
 	MODULE_NAME = "units"
 
 	def __init__(self, url, filename_prefix, ws_base_path, dbx_base_path, ds_folder, archive_folder, dbx_token, webhook, is_test):
