@@ -28,6 +28,6 @@ def replace_substring_in_folder_filenames(folder, replace, replacement):
     for filename in filenames)
 
 	for path in pathiter:
-    	newname =  path.replace(replace, replacement)
-    	if newname != path:
-        	os.rename(path, newname)
+		new_name =  path.replace(replace, replacement)
+		if new_name != path:
+			os.rename(path, new_name)
