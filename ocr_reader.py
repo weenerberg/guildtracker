@@ -1,11 +1,13 @@
 #!/usr/bin/python3
-from os import listdir, walk, rename, makedirs
+from os import listdir, walk, rename, makedirs, getcwd
 from os.path import isfile, isdir, join, dirname, basename, splitext, exists, realpath, normpath
 from shutil import copy, copyfile
 import subprocess
 import logging
 import argparse
 import yaml
+import sys
+import re
 from PIL import Image
 
 # Setup logging
@@ -47,7 +49,7 @@ args = getCLIArguments()
 cfg = load_config(args['config'])
 env_cfg = load_config(args['env_config'])
 
-BASE_PATH = "C:/Users/mawe/Dropbox (Personal)/swgoh/GuildTracker/ocr_ws/inbox/"
+BASE_PATH = env_cfg['ocrBasePath']
 SITH_EVENT_PATH = BASE_PATH + "sith/"
 
 def folders_in(path_to_parent):
@@ -76,10 +78,10 @@ for event_type_folder in list(folders_in(BASE_PATH)):
 				filename, file_extension = splitext(filename_w_ext)
 
 				input_file = '/'.join(event_score_file.split('\\'))
-				print("convert input: " + input_file)
+				#print("convert input: " + input_file)
 				output_file = event_score_type + "/preprocessed/" + filename + "_preprocessed" + file_extension
 				output_file = '/'.join(output_file.split('\\'))
-				print("convert output: " + output_file)
+				#print("convert output: " + output_file)
 
 				output_filepath = dirname(realpath(output_file))
 				if not exists(output_filepath):
@@ -101,22 +103,46 @@ for event_type_folder in list(folders_in(BASE_PATH)):
 				im = Image.open(tesseract_inputfile)
 				copy_infile = "config/sith_score_" + str(im.size[0]) +"x" + str(im.size[1]) + ".uzn"
 				copy_outfile = output_filepath + "/" + filename + "_preprocessed" + ".uzn"
-				print("Copy input: " + copy_infile)
-				print("Copy output: " + copy_outfile)
+				#print("Copy input: " + copy_infile)
+				#print("Copy output: " + copy_outfile)
 				copy(copy_infile, copy_outfile)
 
 				tesseract = "C:/Users/mawe/Downloads/tesseract-4.0.0-alpha/tesseract"
 				user_words = "C:/Users/mawe/Dropbox (Personal)/python/guildtracker/config/eng.user-words"
-				print ("In: " + tesseract_inputfile)
-				print ("Out: " + tesseract_output_file)
+				#print ("In: " + tesseract_inputfile)
+				#print ("Out: " + tesseract_output_file)
 
+				stdout = ""
 				if False:
-					cmd = [tesseract, tesseract_inputfile, tesseract_output_file, "-l", "eng", "--user-words", user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F","--psm", "4", output_file]
+					cmd = [tesseract, tesseract_inputfile, "stdout", "-l", "eng", "--user-words", user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F","--psm", "4", output_file]
 					fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 					stdout, stderr = fconvert.communicate()
 					assert fconvert.returncode == 0, stderr
 				else:
- 					copy("test/dummy_tess", tesseract_output_file) 
+					copy("test/dummy_tess", tesseract_output_file)
+					print(tesseract_output_file)
+					#print("Current wdir: " + getcwd())
+					cmd = ["type",  "test\\dummy_tess"]
+					fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+					stdout, stderr = fconvert.communicate()
+					assert fconvert.returncode == 0, stderr
+
+				stdout = stdout.decode().replace(" ies ", " ").replace(" iss ", " ").replace("Lvl 85", " ").replace("\r\n"," ")
+
+				stdout = re.sub(r'#\d{1,2}','',stdout)
+
+				#stdout = re.match("(\w+\s+(?:\d{1,3})(?:[.,]\d{3})*(\s+|$))",stdout)
+				stdout = re.findall("(\w+\s*\w+\s+\d{1,3}(?:[.,]\d{3})*(?:\s+|$))", stdout)
+				
+				for s in stdout:
+					m = re.match(r'((\w+\s*\w+)\s+(\d{1,3}(?:[.,]\d{3})*(?:\s+|$)))',s)
+					player_round = {
+						'timestamp': event_date,
+						'event_type': event_type,
+						'name': m.group(2),
+						'score': m.group(3).strip()
+					}
+					print(player_round)
 
 # poll dbx folder for batches of screenshots
 
