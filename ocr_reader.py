@@ -57,6 +57,19 @@ def folders_in(path_to_parent):
 		if isdir(join(path_to_parent,fname)):
 			yield (join(path_to_parent,fname))
 
+
+def clean_ocr_output(text):
+	text = text.replace(" ies ", " ").replace(" iss ", " ").replace(" ives "," ").replace(" vies "," ").replace(" ues ", " ")
+	text = text.replace("Lvl 85", " ").replace("Lvi 85 "," ")
+	#text = text.replace("\r\n"," ").replace("\n"," ")
+	text = text.replace("HA3 "," ").replace("HAS "," ")
+
+	text = re.sub(r'[§«=—-]',' ', text)
+	text = re.sub(r'\s$','', text)
+	text = re.sub(r'#\d{1,2}',' ',text)
+	return text
+
+
 if len(list(folders_in(BASE_PATH))) == 0:
 	print("No event types found in " + BASE_PATH + "!")
 	sys.exit(1)
@@ -65,7 +78,6 @@ else:
 		event_type = basename(event_type_folder)
 		print("Event type: " + event_type)
 		#print("1" + event_type_folder)
-
 
 		if len(list(folders_in(event_type_folder))) == 0:
         		print("No events found in " + event_type_folder + "!")
@@ -139,21 +151,33 @@ else:
 						stdout, stderr = fconvert.communicate()
 						assert fconvert.returncode == 0, stderr
 
-					print(stdout.decode())
+					#print(stdout.decode())
 
-					stdout = stdout.decode().replace(" ies ", " ").replace(" iss ", " ").replace("Lvl 85", " ").replace("\r\n"," ")
+					stdout = clean_ocr_output(stdout.decode())
 
-					stdout = re.sub(r'#\d{1,2}','',stdout)
+					print(stdout)
 
+					#(?<=Beach)\D*(\d{1,3}(?:[.,]\d{3})*)$
 					#stdout = re.match("(\w+\s+(?:\d{1,3})(?:[.,]\d{3})*(\s+|$))",stdout)
-					stdout = re.findall("(\w+\s*\w+\s+\d{1,3}(?:[.,]\d{3})*(?:\s+|$))", stdout)
-				
-					for s in stdout:
-						m = re.match(r'((\w+\s*\w+)\s+(\d{1,3}(?:[.,]\d{3})*(?:\s+|$)))',s)
-						player_round = {
-							'timestamp': event_date,
-							'event_type': event_type,
-							'name': m.group(2),
-							'score': m.group(3).strip()
-						}
-					print(player_round)
+					#stdout = re.findall("(\w+\s*\w+\s+\d{1,3}(?:[.,]\d{3})*(?:\s+|$))", stdout)
+
+					#get all players
+					#Loop over players
+					players = ['HB','Beach','obione','Thraken Vih\'Torr']
+					
+
+					for player in players:
+						regex = r"(?<=" + re.escape(player) + r").*?(\d{1,3}(?:[.,]\d{3})*)$"
+						m = re.match(regex, stdout, re.DOTALL | re.MULTILINE)
+						print (m)
+						print(player + " " + m.group(0))
+						#player_round = {
+						#	'timestamp': event_date,
+						#	'event_type': event_type,
+						#	'name': m.group(2),
+						#	'score': m.group(3).strip()
+						#}
+					#print(player_round)
+
+
+
