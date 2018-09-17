@@ -19,7 +19,7 @@ guilds:
         zetas:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/zetas/
         guildUnits:
-            url: https://swgoh.gg/api/guilds/27199/units/
+            url: https://swgoh.gg/api/guild/27199/
     -
         name: SSAinVaders2
         discordReportingWebhook-test: https://discordapp.com/api/webhooks/479761773214564353/UfLrQRETwP1VE_ArJjAhL1aVemvEsF_sw3SG5wgcHMrXwsZWcSoOCOPx6bLb-LTzdP_6
@@ -29,4 +29,4 @@ guilds:
         zetas:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/zetas/
         guildUnits:
-            url: https://swgoh.gg/api/guilds/27199/units/
+            url: https://swgoh.gg/api/guild/27199/

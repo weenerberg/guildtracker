@@ -27,13 +27,10 @@ class UnitsHandler(DatasourceHandler):
 		self.data = requests.get(self.url).json()
 
 	def write_data_to_file_helper(self, csv_writer):
-		for toon, players in self.data.items():
-			for player in players:
-				# Ships doesn't have a gear level or url
-				gear_level_str = player['gear_level'] if player['combat_type'] == 1 else ""
-				url_str = player['url'] if player['combat_type'] == 1 else ""
-
-				csv_writer.writerow([self.get_entry_timestamp(), player['player'], toon, url_str, player['combat_type'], player['rarity'], player['level'], gear_level_str, player['power']])
+		players = self.data['players']
+		for player in players:
+			for unit in player['units']:
+				csv_writer.writerow([self.get_entry_timestamp(), player['data']['name'], unit['data']['base_id'], player['data']['url'], 'n/a', unit['data']['rarity'], unit['data']['level'], unit['data']['gear_level'], unit['data']['power']])
 
 	def generate_report_text(self, prefix, suffix):
 	    pass
