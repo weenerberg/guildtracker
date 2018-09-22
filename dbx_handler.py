@@ -86,7 +86,7 @@ class DbxHandler(object):
 					
 				elif isinstance(file, dropbox.files.FileMetadata):
 					print("Download " + file.path_lower)
-					with open(dst_filepath, "wb") as f:
+					with open(dst_filepath, "wb+") as f:
 						metadata, res = self.dbx.files_download(path=file.path_lower)
 						f.write(res.content)
 				else:
