@@ -124,7 +124,7 @@ class TerritoryBattleAreaScoreReader(object):
 		input_filename_w_ext = basename(input_file)
 		input_filename, input_filename_extension = splitext(input_filename_w_ext)
 
-		copy_infile = "config/" + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
+		copy_infile = "/usr/local/bin/guildtracker/config/" + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
 		copy_outfile = input_filepath + "/" + input_filename + ".uzn"
 		#print("Copy input: " + copy_infile)
 		#print("Copy output: " + copy_outfile)
