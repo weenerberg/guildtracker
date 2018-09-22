@@ -6,7 +6,7 @@ from territory_battle_total_score_reader import TerritoryBattleTotalScoreReader
 from territory_battle_total_combat_waves_reader import TerritoryBattleTotalCombatWavesReader
 from territory_battle_area_score_reader import TerritoryBattleAreaScoreReader
 
-logger = logging.getLogger('guildtracker.handlerfactory')
+logger = logging.getLogger(__name__)
 
 class OcrReaderFactory(object):
 

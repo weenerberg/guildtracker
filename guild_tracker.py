@@ -11,12 +11,20 @@ from zeta_reviews_handler import ZetaReviewsHandler
 from utils import get_guild_config
 
 # Setup logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
+
+fh = logging.FileHandler()
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 #
 #
@@ -86,7 +94,7 @@ dbx_datasources_path = dbx_root_path + "datasource/"
 guild = args['guild']
 guilds = []
 if not guild:
-    print("No guild specified. Executing all guilds from config.")
+    logger.info("No guild specified. Executing all guilds from config.")
     guilds = cfg['guilds']
 else:
     guilds = get_guild_config(cfg, guild)
@@ -108,7 +116,7 @@ for guild_config in guilds:
         
     # Get Arena Rank
     if args['arenaranks']:
-        logging.debug("Scraping arena ranks...")
+        logger.debug("Scraping arena ranks...")
         url = guild_config['arenaranks']['url']
         
         arena_ranks_handler = handler_factory.get_handler(ArenaRanksHandler.MODULE_NAME, url)
@@ -121,7 +129,7 @@ for guild_config in guilds:
 
     # Get Guild Units
     if args['units']:
-        logging.debug("Reading guildUnits...")
+        logger.debug("Reading guildUnits...")
         url = guild_config['guildUnits']['url']
 
         units_handler = handler_factory.get_handler(UnitsHandler.MODULE_NAME, url)
@@ -129,7 +137,7 @@ for guild_config in guilds:
 
     # Get Unit Mappings
     if args['unit_mappings']:
-        logging.debug("Reading unit mappings...")
+        logger.debug("Reading unit mappings...")
         url = cfg['global']['unitMappings']['url']
 
         units_mapping_handler = handler_factory.get_handler(UnitMappingsHandler.MODULE_NAME, url)
@@ -137,7 +145,7 @@ for guild_config in guilds:
 
     # Get Zeta Reviews
     if args['zeta_reviews']:
-        logging.debug("Reading zeta reviews...")
+        logger.debug("Reading zeta reviews...")
         url = cfg['global']['zetaReviews']['url']
 
         zeta_reviews_handler = handler_factory.get_handler(ZetaReviewsHandler.MODULE_NAME, url)

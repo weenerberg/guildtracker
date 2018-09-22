@@ -7,7 +7,7 @@ from shutil import copy, copyfile
 import re
 import csv
 
-logger = logging.getLogger('guildtracker.guildticketslifetimereader')
+logger = logging.getLogger(__name__)
 
 class GuildticketsLifetimeReader(object):
 
@@ -17,11 +17,9 @@ class GuildticketsLifetimeReader(object):
 	def match_anomality(self, player, mapping):
 		for k, v in mapping.items():
 		    for ano in v:
-		    	#print(ano)
 		    	if ano == player:
-		    		print("Anomality detected. Fixing. " + player + "->" + k)
-		    		return k
-		#print("No anomality")	    		
+		    		logger.info("Anomality detected. Fixing. " + player + "->" + k)
+		    		return k	    		
 		return player
 
 	def parse_text(self, known_players, known_anomalities, text):
@@ -42,8 +40,8 @@ class GuildticketsLifetimeReader(object):
 			if re.match(r'\w.*$', line):
 				names.append(line)
 
-		print(names)
-		print(numbers)
+		logger.debug('Names found in OCR output: ' + names)
+		logger.debug('Numbers found in OCR output: ' + numbers)
 
 		for idx, name in enumerate(names):
 			player_round = {
@@ -57,8 +55,7 @@ class GuildticketsLifetimeReader(object):
 
 
 		if len(names) < 5:
-			print("Only " + str(len(names)) + " players found in \n" + text)
-			print("--------------------")
+			logger.warning("Only " + str(len(names)) + " players found in \n" + text)
 
 		return player_rounds
 
@@ -75,24 +72,17 @@ class GuildticketsLifetimeReader(object):
 		for player in player_rounds:
 			csv_writer.writerow([player['timestamp'], player['name'], player['event_type'], player['score_type'], player['score']])	
 
-		print ("Writing to " + output_file)
+		logger.debug("Writing to " + output_file)
 
 		return output_file
 
 	def clean_ocr_output(self, text):
-		#text = text.replace(" ies ", " ").replace(" iss ", " ").replace(" ives "," ").replace(" vies "," ").replace(" ues ", " ")
-		#text = text.replace("Lvl 85", " ").replace("Lvi 85 "," ")
 		text = text.replace("^\r\n$","").replace("^\n$","")
-		#text = text.replace("HA3 "," ").replace("HAS "," ")
-
-		#text = re.sub(r'[§«=—-]',' ', text)
-		#text = re.sub(r'\s$','', text)
 		text = re.sub(r'Leader','',text)
 		text = re.sub(r'Member','',text)
 		text = re.sub(r'Officer','',text)
 		text = re.sub(r'Lifetime Guild','',text)
 		text = re.sub(r'Tokens Earned:','',text)
-		print(text)
 		return text
 
 	def preprocess_image(self, path_to_convert, input_file, output_file):
@@ -106,7 +96,7 @@ class GuildticketsLifetimeReader(object):
 		stdout, stderr = fconvert.communicate()
 		assert fconvert.returncode == 0, stderr
 
-	def execute_ocr(self, path_to_tesseract, path_to_user_words, event_type, score_type, input_file, output_file):
+	def execute_ocr(self, path_to_tesseract, path_to_user_words, path_to_uzn, event_type, score_type, input_file, output_file):
 		output_filepath = dirname(realpath(output_file))
 
 		if not exists(output_filepath):
@@ -121,13 +111,11 @@ class GuildticketsLifetimeReader(object):
 		input_filename_w_ext = basename(input_file)
 		input_filename, input_filename_extension = splitext(input_filename_w_ext)
 
-		copy_infile = "/usr/local/bin/guildtracker/config/" + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
+		copy_infile = path_to_uzn + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
 		copy_outfile = input_filepath + "/" + input_filename + ".uzn"
 		#print("Copy input: " + copy_infile)
 		#print("Copy output: " + copy_outfile)
 		copy(copy_infile, copy_outfile)
-
-		stdout = ""
 
 		cmd = [path_to_tesseract, input_file, "stdout", "-l", "eng", "--user-words", path_to_user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F", "--psm", "4"]
 		ftesseract = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

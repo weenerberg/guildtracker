@@ -17,12 +17,20 @@ from handler_factory import HandlerFactory
 from dbx_handler import DbxHandler
 
 # Setup logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
+
+fh = logging.FileHandler('/var/log/guildtracker/guildtracker.log')
+fh.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+logger.addHandler(fh)
 
 #
 #
@@ -30,8 +38,7 @@ logger.addHandler(ch)
 def getCLIArguments():
     parser = argparse.ArgumentParser(description='Generates report from swgoh guilds')
 
-    parser.add_argument('-c', '--config', action="store", required=True)
-    parser.add_argument('-e', '--env-config', action="store", required=True)
+    parser.add_argument('-c', '--config-dir', action="store", required=True)
     parser.add_argument('-g', '--guild', action="store")
     parser.add_argument('--save-file', action="store_true")
     parser.add_argument('--send-discord', action="store_true")
@@ -44,8 +51,8 @@ def getCLIArguments():
 #
 #
 #
-def load_config(filename="config.yml"):
-    logger.debug("Loading config file: " + filename)
+def load_config(filename):
+    logger.info("Loading config file: " + filename)
     with open(filename, 'r') as ymlfile:
         return yaml.load(ymlfile)
 
@@ -81,13 +88,13 @@ def get_guild_names(guild_url):
 
 # Get CLI and config file configuration
 args = getCLIArguments()
-cfg = load_config(args['config'])
-env_cfg = load_config(args['env_config'])
+cfg = load_config(args['config_dir'] + 'config.yml')
+env_cfg = load_config(args['config_dir'] + 'env_config.yml')
 
 
 TOKEN = env_cfg['token']
 
-anomalities = load_config("/usr/local/bin/guildtracker/config/knownNameAnomalities.yml")
+anomalities = load_config(args['config_dir'] + 'knownNameAnomalities.yml')
 
 #Configure input and output
 folder_prefix = "" if args['prod'] else "TEST/"
@@ -105,10 +112,11 @@ dbx_datasources_path = dbx_root_path + "datasource/"
 guild = args['guild']
 guilds = []
 if not guild:
-    print("No guild specified. Executing all guilds from config.")
+    logger.info("No guild specified. Executing all guilds from config.")
     guilds = cfg['guilds']
 else:
-    guilds = get_guild_config(cfg, guild)
+	logger.info("Will execute for guild: " + guild)
+	guilds = get_guild_config(cfg, guild)
 
 #/home/mawe/GuildTrackerWS/ocr_ws/inbox
 OCR_BASE_PATH = env_cfg['ocrBasePath']
@@ -126,11 +134,11 @@ ocr_reader_factory = OcrReaderFactory()
 #if len(list(folders_in(OCR_BASE_PATH))) == 0:
 if args['prod']:
 	if not dbx_handler.isFilesAvailable(DBX_INBOX_PATH):
-		print("No event types found at " + DBX_INBOX_PATH + "!")
+		logger.info("No event types found at " + DBX_INBOX_PATH + "!")
 		sys.exit(1)
 else:
 	if len(list(folders_in(OCR_INBOX_PATH))) == 0:
-		print("No event types found at " + OCR_INBOX_PATH + "!")
+		logger.info("No event types found at " + OCR_INBOX_PATH + "!")
 		sys.exit(1)
 
 
@@ -142,22 +150,21 @@ for guild_config in guilds:
 	players = get_guild_names(url)
 	player_anomalities = get_all_known_anomalities(anomalities)
 	players.extend(player_anomalities)
-	print(players)
-
+	logger.debug(players)
 
 	if args['prod']:
 		# Fetch all screenshots from dbx to locally and then delete them from dbx
 		dbx_handler.get_all_files_and_folders(DBX_INBOX_PATH, OCR_INBOX_PATH)
 		dbx_handler.delete_sub_folders(DBX_INBOX_PATH)
 	else:
-		print("Test mode. Using what is in place at " + OCR_INBOX_PATH)
+		logger.debug("Test mode. Using what is in place at " + OCR_INBOX_PATH)
 
 	for event_type_folder in list(folders_in(OCR_INBOX_PATH)):
 		event_type = basename(event_type_folder)
-		print("Event type: " + event_type)
+		logger.debug("Event type: " + event_type)
 
 		if len(list(folders_in(event_type_folder))) == 0:
-			print("No events found in " + event_type_folder + "!")
+			logger.info("No events found in " + event_type_folder + "!")
 			continue
 
 	    #
@@ -169,19 +176,19 @@ for guild_config in guilds:
 
 		for event_folder in list(folders_in(event_type_folder)):
 			event_date = basename(event_folder).split("_")[1]
-			print("Event date: " + event_date)
+			logger.debug("Event date: " + event_date)
 
 			ocr_reader = None
 			player_rounds = []
 			for event_score_type_folder in list(folders_in(event_folder)):
 				score_type = basename(event_score_type_folder).split("_")[1]
-				print("Score type: " + score_type)
+				logger.debug("Score type: " + score_type)
 
 				ocr_reader = ocr_reader_factory.get_reader(event_type, score_type, event_date)
 
 				files = get_all_files_in_folder(event_score_type_folder)
 				for event_score_file in files:
-					print("Event score file: " + event_score_file)
+					logger.debug("Event score file: " + event_score_file)
 				
 					convert_input_file = '/'.join(event_score_file.split('\\'))
 
@@ -200,9 +207,9 @@ for guild_config in guilds:
 					
 					tesseract_path = env_cfg['tesseract_path']
 					user_words_path = env_cfg['tesseract_user_words']
+					uzn_path = args['config_dir']
 
-
-					text = ocr_reader.execute_ocr(tesseract_path, user_words_path, event_type, score_type, tesseract_input_file, tesseract_output_file)
+					text = ocr_reader.execute_ocr(tesseract_path, user_words_path, uzn_path, event_type, score_type, tesseract_input_file, tesseract_output_file)
 
 					player_rounds.extend(ocr_reader.parse_text(players, anomalities, text))
 
@@ -210,11 +217,12 @@ for guild_config in guilds:
 			
 			filename, extension = splitext(basename(event_folder))
 			output_file = root_path + ds_folder + 'raids/' + event_type + "/" + filename + ".csv"
-			print("Saving file to " + output_file + " with " + str(type(ocr_reader)))
+			logger.debug("Saving file to " + output_file + " with " + str(type(ocr_reader)))
 			saved_file = ocr_reader.save_file(output_file, player_rounds)
 			ocr_reader.dbx_upload(dbx_handler, dbx_datasources_path + 'raids/' + event_type + '/', saved_file)
 			
 		if args['prod']:
+			logger.info('Moving processed event type ' + event_type_folder + ' to archive: ' + OCR_ARCHIVE_PATH)
 			makedirs(dirname(OCR_ARCHIVE_PATH), exist_ok=True)
 			move(event_type_folder, OCR_ARCHIVE_PATH)
 					

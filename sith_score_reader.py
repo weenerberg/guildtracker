@@ -7,7 +7,7 @@ from shutil import copy, copyfile
 import re
 import csv
 
-logger = logging.getLogger('guildtracker.sithscorereader')
+logger = logging.getLogger(__name__)
 
 class SithScoreReader(object):
 
@@ -17,11 +17,9 @@ class SithScoreReader(object):
 	def match_anomality(self, player, mapping):
 		for k, v in mapping.items():
 		    for ano in v:
-		    	#print(ano)
 		    	if ano == player:
-		    		print("Anomality detected. Fixing. " + player + "->" + k)
-		    		return k
-		#print("No anomality")	    		
+		    		logger.info("Anomality detected. Fixing. " + player + "->" + k)
+		    		return k	    		
 		return player
 
 	def parse_text(self, known_players, known_anomalities, text):
@@ -72,12 +70,12 @@ class SithScoreReader(object):
 				if not any(d['name'] == player_round['name'] for d in player_rounds):
 					player_rounds.append(player_round)
 				else:
-					print("Duplicate. Skipping. " + player_round['name'])
+					logger.info("Duplicate. Skipping. " + player_round['name'])
 					
 
 		if players_found < 3:
-			print("Only " + str(players_found) + " players found in \n" + text)
-			print("--------------------")
+			logger.warning("Only " + str(players_found) + " players found in \n" + text)
+			
 
 		return player_rounds
 
@@ -119,7 +117,7 @@ class SithScoreReader(object):
 		assert fconvert.returncode == 0, stderr
 
 
-	def execute_ocr(self, path_to_tesseract, path_to_user_words, event_type, score_type, input_file, output_file):
+	def execute_ocr(self, path_to_tesseract, path_to_user_words, path_to_uzn, event_type, score_type, input_file, output_file):
 		output_filepath = dirname(realpath(output_file))
 
 		if not exists(output_filepath):
@@ -134,7 +132,7 @@ class SithScoreReader(object):
 		input_filename_w_ext = basename(input_file)
 		input_filename, input_filename_extension = splitext(input_filename_w_ext)
 
-		copy_infile = "/usr/local/bin/guildtracker/config/" + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
+		copy_infile = path_to_uzn + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
 		copy_outfile = input_filepath + "/" + input_filename + ".uzn"
 		#print("Copy input: " + copy_infile)
 		#print("Copy output: " + copy_outfile)
