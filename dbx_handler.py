@@ -85,6 +85,8 @@ class DbxHandler(object):
 					makedirs(dirname(dst_filepath), exist_ok=True)
 					
 				elif isinstance(file, dropbox.files.FileMetadata):
+					makedirs(dirname(dst_filepath), exist_ok=True)
+
 					print("Download " + file.path_lower)
 					with open(dst_filepath, "wb+") as f:
 						metadata, res = self.dbx.files_download(path=file.path_lower)
