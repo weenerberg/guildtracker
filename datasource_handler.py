@@ -66,11 +66,14 @@ class DatasourceHandler(ABC):
 		pass
 
 	def execute(self, save_file, archive_file, upload_dbx, send_discord=False):
+		print("--------------Executing " + self.get_module_name() + "----------")
 		logger.debug("--------------Executing " + self.get_module_name() + "----------")
 		
 		if save_file:
+			print("Saving file: " + self.get_filepath() + self.get_filename(False))
 			self.write_data_to_file(archive_file)
 			if upload_dbx:
+				print("Upload to dbx: " + self.get_filepath() + self.get_filename(False))
 				self.upload_file_to_dropbox(archive_file)
 		if send_discord:
 			self.send_discord_report()
@@ -90,7 +93,7 @@ class DatasourceHandler(ABC):
 	def write_data_to_file(self, archive_file):
 		csv_writer = setup_new_datasource_file(self.get_headers(), self.get_filepath(), self.get_filename(not archive_file))
 		self.write_data_to_file_helper(csv_writer)
-		
+		print("WROTE TO " + self.get_filepath())
 		if archive_file:
 			logging.debug("Copying file from: " + self.get_filepath() + self.get_filename(not archive_file) + " to " + self.get_archive_path() + self.get_filename(archive_file))
 			if not os.path.exists(self.get_archive_path()):

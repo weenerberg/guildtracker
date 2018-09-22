@@ -1,14 +1,20 @@
 #!/usr/bin/python3
 from os import listdir, walk, rename, makedirs, getcwd
 from os.path import isfile, isdir, join, dirname, basename, splitext, exists, realpath, normpath
-from shutil import copy, copyfile
+from shutil import copy, copyfile, move
 import subprocess
 import logging
 import argparse
 import yaml
+import csv
 import sys
 import re
 from PIL import Image
+from utils import get_guild_config
+from ocr_reader_factory import OcrReaderFactory
+from units_handler import UnitsHandler
+from handler_factory import HandlerFactory
+from dbx_handler import DbxHandler
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -43,141 +49,172 @@ def load_config(filename="config.yml"):
     with open(filename, 'r') as ymlfile:
         return yaml.load(ymlfile)
 
-
-# Get CLI and config file configuration
-args = getCLIArguments()
-cfg = load_config(args['config'])
-env_cfg = load_config(args['env_config'])
-
-BASE_PATH = env_cfg['ocrBasePath']
-SITH_EVENT_PATH = BASE_PATH + "sith/"
-
 def folders_in(path_to_parent):
 	for fname in listdir(path_to_parent):
 		if isdir(join(path_to_parent,fname)):
 			yield (join(path_to_parent,fname))
 
 
-def clean_ocr_output(text):
-	text = text.replace(" ies ", " ").replace(" iss ", " ").replace(" ives "," ").replace(" vies "," ").replace(" ues ", " ")
-	text = text.replace("Lvl 85", " ").replace("Lvi 85 "," ")
-	#text = text.replace("\r\n"," ").replace("\n"," ")
-	text = text.replace("HA3 "," ").replace("HAS "," ")
-
-	text = re.sub(r'[§«=—-]',' ', text)
-	text = re.sub(r'\s$','', text)
-	text = re.sub(r'#\d{1,2}',' ',text)
-	return text
+def get_all_files_in_folder(folder):
+	f = []
+	for (dirpath, dirnames, filenames) in walk(folder):
+		f.extend(join(dirpath, filename) for filename in filenames)
+		break
+	return f
 
 
-if len(list(folders_in(BASE_PATH))) == 0:
-	print("No event types found in " + BASE_PATH + "!")
-	sys.exit(1)
+def get_all_known_anomalities(mapping):
+	retval = []
+	for key, value in mapping.items():
+		for ano in value:
+			retval.append(ano)
+	return retval
+
+
+
+def get_guild_names(guild_url):
+	handler_factory = HandlerFactory("None", "None", "None", "None", "None", "None", "None", True)
+	units_handler = handler_factory.get_handler(UnitsHandler.MODULE_NAME, guild_url)
+	names = units_handler.get_all_members()
+	return names
+
+
+# Get CLI and config file configuration
+args = getCLIArguments()
+cfg = load_config(args['config'])
+env_cfg = load_config(args['env_config'])
+
+
+TOKEN = env_cfg['token']
+
+anomalities = load_config("config/knownNameAnomalities.yml")
+
+#Configure input and output
+folder_prefix = "" if args['prod'] else "TEST/"
+
+root_path = env_cfg['outputBasePath'] + folder_prefix
+archive_folder = "archive/datasource/"
+ds_folder = "datasource/"
+
+
+dbx_root_path = cfg['dpxBasePath'] + folder_prefix
+dbx_archive_datasources_path = dbx_root_path + "archive/datasource/"
+dbx_datasources_path = dbx_root_path + "datasource/"
+
+# Get guild of guilds
+guild = args['guild']
+guilds = []
+if not guild:
+    print("No guild specified. Executing all guilds from config.")
+    guilds = cfg['guilds']
 else:
-	for event_type_folder in list(folders_in(BASE_PATH)):
+    guilds = get_guild_config(cfg, guild)
+
+#/home/mawe/GuildTrackerWS/ocr_ws/inbox
+OCR_BASE_PATH = env_cfg['ocrBasePath']
+OCR_INBOX_PATH = OCR_BASE_PATH + folder_prefix + 'ocr_ws/inbox/'
+OCR_ARCHIVE_PATH =  OCR_BASE_PATH + folder_prefix + 'ocr_ws/archive/'
+
+DBX_BASE_PATH = env_cfg['ocrDbxBasePath']
+DBX_INBOX_PATH = DBX_BASE_PATH + folder_prefix + 'ocr_ws/inbox'
+
+dbx_handler = DbxHandler(dbx_root_path, TOKEN)
+
+ocr_reader_factory = OcrReaderFactory()
+
+
+#if len(list(folders_in(OCR_BASE_PATH))) == 0:
+if args['prod']:
+	if not dbx_handler.isFilesAvailable(DBX_INBOX_PATH):
+		print("No event types found at " + DBX_INBOX_PATH + "!")
+		sys.exit(1)
+else:
+	if len(list(folders_in(OCR_INBOX_PATH))) == 0:
+		print("No event types found at " + OCR_INBOX_PATH + "!")
+		sys.exit(1)
+
+
+for guild_config in guilds:
+	guild = guild_config['name']
+	is_test = not args['prod']
+
+	url = guild_config['guildUnits']['url']
+	players = get_guild_names(url)
+	player_anomalities = get_all_known_anomalities(anomalities)
+	players.extend(player_anomalities)
+	print(players)
+
+
+	if args['prod']:
+		# Fetch all screenshots from dbx to locally and then delete them from dbx
+		dbx_handler.get_all_files_and_folders(DBX_INBOX_PATH, OCR_INBOX_PATH)
+		dbx_handler.delete_sub_folders(DBX_INBOX_PATH)
+	else:
+		print("Test mode. Using what is in place at " + OCR_INBOX_PATH)
+
+	for event_type_folder in list(folders_in(OCR_INBOX_PATH)):
 		event_type = basename(event_type_folder)
 		print("Event type: " + event_type)
-		#print("1" + event_type_folder)
 
 		if len(list(folders_in(event_type_folder))) == 0:
-        		print("No events found in " + event_type_folder + "!")
+			print("No events found in " + event_type_folder + "!")
+			continue
+
+	    #
+	    # JUST DURING TEST
+	    #
+		#if event_type != "sith":
+		#	print("skipping " + event_type)
+		#	continue
 
 		for event_folder in list(folders_in(event_type_folder)):
-			#print("2" + event_folder)
-			event_date = event_folder.split("_")[1]
-			for event_score_type in list(folders_in(event_folder)):
-				#print("3" + event_score_type)
-				f = []
-				for (dirpath, dirnames, filenames) in walk(event_score_type):
-					f.extend(join(dirpath, filename) for filename in filenames)
-					break
-				for event_score_file in f:
+			event_date = basename(event_folder).split("_")[1]
+			print("Event date: " + event_date)
+
+			ocr_reader = None
+			player_rounds = []
+			for event_score_type_folder in list(folders_in(event_folder)):
+				score_type = basename(event_score_type_folder).split("_")[1]
+				print("Score type: " + score_type)
+
+				ocr_reader = ocr_reader_factory.get_reader(event_type, score_type, event_date)
+
+				files = get_all_files_in_folder(event_score_type_folder)
+				for event_score_file in files:
 					print("Event score file: " + event_score_file)
 				
-					filename_w_ext = basename(event_score_file)
-					filename, file_extension = splitext(filename_w_ext)
+					convert_input_file = '/'.join(event_score_file.split('\\'))
 
-					input_file = '/'.join(event_score_file.split('\\'))
-					#print("convert input: " + input_file)
-					output_file = event_score_type + "/preprocessed/" + filename + "_preprocessed" + file_extension
-					output_file = '/'.join(output_file.split('\\'))
-					#print("convert output: " + output_file)
-
-					output_filepath = dirname(realpath(output_file))
-					if not exists(output_filepath):
-						makedirs(output_filepath)
+					convert_filename_w_ext = basename(convert_input_file)
+					convert_input_filename, convert_input_filename_extension = splitext(convert_filename_w_ext)
+					convert_output_file = event_score_type_folder + "/preprocessed/" + convert_input_filename + "_preprocessed" + convert_input_filename_extension
+					convert_output_file = '/'.join(convert_output_file.split('\\'))
 
 					convert = env_cfg['convert_path']
 
-					cmd = [convert, input_file, "-colorspace", "gray", "-negate", "-morphology", "close", "diamond", "-threshold", "55%", output_file]
-					fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-					stdout, stderr = fconvert.communicate()
-					assert fconvert.returncode == 0, stderr
+					ocr_reader.preprocess_image(convert, convert_input_file, convert_output_file)
 
-					tesseract_inputfile = output_file
-					tesseract_output_file = event_score_type + "/ocred/" + filename  + ".txt"
+					tesseract_input_file = convert_output_file
+					tesseract_output_file = event_score_type_folder + "/ocred/" + convert_input_filename  + ".txt"
 					tesseract_output_file = '/'.join(tesseract_output_file.split('\\'))
-					tesseract_output_filepath = dirname(realpath(tesseract_output_file))
-
-					if not exists(tesseract_output_filepath):
-						makedirs(tesseract_output_filepath)
-
-
-					im = Image.open(tesseract_inputfile)
-					copy_infile = "config/sith_score_" + str(im.size[0]) +"x" + str(im.size[1]) + ".uzn"
-					copy_outfile = output_filepath + "/" + filename + "_preprocessed" + ".uzn"
-					#print("Copy input: " + copy_infile)
-					#print("Copy output: " + copy_outfile)
-					copy(copy_infile, copy_outfile)
-
-					tesseract = env_cfg['tesseract_path']
-					user_words = env_cfg['tesseract_user_words']
-
-					#print ("In: " + tesseract_inputfile)
-					#print ("Out: " + tesseract_output_file)
-
-					stdout = ""
-					if True:
-						cmd = ["tesseract", tesseract_inputfile, "stdout", "-l", "eng", "--user-words", user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F", "--psm", "4"]
-						ftesseract = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-						stdout, stderr = ftesseract.communicate()
-						assert ftesseract.returncode == 0, stderr
-					else:
-						copy("test/dummy_tess", tesseract_output_file)
-						print(tesseract_output_file)
-						#print("Current wdir: " + getcwd())
-						cmd = ["type",  "test\\dummy_tess"]
-						fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-						stdout, stderr = fconvert.communicate()
-						assert fconvert.returncode == 0, stderr
-
-					#print(stdout.decode())
-
-					stdout = clean_ocr_output(stdout.decode())
-
-					print(stdout)
-
-					#(?<=Beach)\D*(\d{1,3}(?:[.,]\d{3})*)$
-					#stdout = re.match("(\w+\s+(?:\d{1,3})(?:[.,]\d{3})*(\s+|$))",stdout)
-					#stdout = re.findall("(\w+\s*\w+\s+\d{1,3}(?:[.,]\d{3})*(?:\s+|$))", stdout)
-
-					#get all players
-					#Loop over players
-					players = ['HB','Beach','obione','Thraken Vih\'Torr']
 					
-
-					for player in players:
-						regex = r"(?<=" + re.escape(player) + r").*?(\d{1,3}(?:[.,]\d{3})*)$"
-						m = re.match(regex, stdout, re.DOTALL | re.MULTILINE)
-						print (m)
-						print(player + " " + m.group(0))
-						#player_round = {
-						#	'timestamp': event_date,
-						#	'event_type': event_type,
-						#	'name': m.group(2),
-						#	'score': m.group(3).strip()
-						#}
-					#print(player_round)
+					tesseract_path = env_cfg['tesseract_path']
+					user_words_path = env_cfg['tesseract_user_words']
 
 
+					text = ocr_reader.execute_ocr(tesseract_path, user_words_path, event_type, score_type, tesseract_input_file, tesseract_output_file)
 
+					player_rounds.extend(ocr_reader.parse_text(players, anomalities, text))
+
+
+			
+			filename, extension = splitext(basename(event_folder))
+			output_file = root_path + ds_folder + 'raids/' + event_type + "/" + filename + ".csv"
+			print("Saving file to " + output_file + " with " + str(type(ocr_reader)))
+			saved_file = ocr_reader.save_file(output_file, player_rounds)
+			ocr_reader.dbx_upload(dbx_handler, dbx_datasources_path + 'raids/' + event_type + '/', saved_file)
+			
+		if args['prod']:
+			makedirs(dirname(OCR_ARCHIVE_PATH), exist_ok=True)
+			move(event_type_folder, OCR_ARCHIVE_PATH)
+					

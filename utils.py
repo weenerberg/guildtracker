@@ -31,3 +31,7 @@ def replace_substring_in_folder_filenames(folder, replace, replacement):
 		new_name =  path.replace(replace, replacement)
 		if new_name != path:
 			os.rename(path, new_name)
+
+def get_guild_config(cfg, guild_string):
+    guilds = cfg['guilds']
+    return [next((item for item in guilds if item["name"] == guild_string))]

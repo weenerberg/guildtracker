@@ -8,6 +8,7 @@ from arena_ranks_handler import ArenaRanksHandler
 from units_handler import UnitsHandler
 from unit_mappings_handler import UnitMappingsHandler
 from zeta_reviews_handler import ZetaReviewsHandler
+from utils import get_guild_config
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -59,9 +60,9 @@ env_cfg = load_config(args['env_config'])
 #
 #
 #
-def get_guild_config(cfg, guild_string):
-    guilds = cfg['guilds']
-    return [next((item for item in guilds if item["name"] == guild_string))]
+#def get_guild_config(cfg, guild_string):
+#    guilds = cfg['guilds']
+#    return [next((item for item in guilds if item["name"] == guild_string))]
 
 
 ##############################
