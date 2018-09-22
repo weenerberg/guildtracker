@@ -87,7 +87,7 @@ env_cfg = load_config(args['env_config'])
 
 TOKEN = env_cfg['token']
 
-anomalities = load_config("config/knownNameAnomalities.yml")
+anomalities = load_config("/usr/local/bin/guildtracker/config/knownNameAnomalities.yml")
 
 #Configure input and output
 folder_prefix = "" if args['prod'] else "TEST/"
