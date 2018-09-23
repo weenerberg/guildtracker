@@ -33,15 +33,23 @@ class GuildticketsLifetimeReader(object):
 
 		names = []
 		numbers = []
+		
+		new_lines = []
 		for line in lines:
-			if re.match(r'\d{1,7}.*$', line):
-				numbers.append(line)
-				continue
 			if re.match(r'\w.*$', line):
-				names.append(line)
+				new_lines.append(line)
 
-		logger.debug('Names found in OCR output: ' + names)
-		logger.debug('Numbers found in OCR output: ' + numbers)
+		names = new_lines[:len(new_lines)//2]
+		numbers = new_lines[len(new_lines)//2:]
+
+			#if re.match(r'\d{1,7}.*$', line):
+			#	numbers.append(line)
+			#	continue
+			#if re.match(r'\w.*$', line):
+			#	names.append(line)
+
+		logger.debug('Names found in OCR output: ' + str(names))
+		logger.debug('Numbers found in OCR output: ' + str(numbers))
 
 		for idx, name in enumerate(names):
 			player_round = {

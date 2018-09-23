@@ -7,7 +7,7 @@ from os.path import isfile, isdir, join, dirname, basename, splitext, exists, re
 from os import listdir, walk, rename, makedirs, getcwd
 import types
 
-logger = logging.getLogger('guildtracker.dbxhandler')
+logger = logging.getLogger(__name__)
 
 class DbxHandler(object):
 
@@ -34,10 +34,10 @@ class DbxHandler(object):
 						err.error.get_path().reason.is_insufficient_space()):
 					sys.exit("ERROR: Cannot back up; insufficient space.")
 				elif err.user_message_text:
-					print(err.user_message_text)
+					logger.error(err.user_message_text)
 					sys.exit(0)
 				else:
-					print(err)
+					logger.error(err)
 					sys.exit(0)
 
 
@@ -57,17 +57,17 @@ class DbxHandler(object):
 
 		except ApiError as err:
 			if err.user_message_text:
-				print(err.user_message_text)
+				logger.error(err.user_message_text)
 				sys.exit(0)
 			else:
-				print(err)
+				logger.error(err)
 				sys.exit(0)
 	
 
 	def get_all_files_and_folders(self, dbx_folder, dst_folder):
 
-		print("dbx_folder: " + dbx_folder)
-		print("dst_folder: " + dst_folder)
+		logger.debug("dbx_folder: " + dbx_folder)
+		logger.debug("dst_folder: " + dst_folder)
 
 		try:
 			self.dbx.users_get_current_account()
@@ -87,19 +87,19 @@ class DbxHandler(object):
 				elif isinstance(file, dropbox.files.FileMetadata):
 					makedirs(dirname(dst_filepath), exist_ok=True)
 
-					print("Download " + file.path_lower)
+					logger.debug("Download " + file.path_lower)
 					with open(dst_filepath, "wb+") as f:
 						metadata, res = self.dbx.files_download(path=file.path_lower)
 						f.write(res.content)
 				else:
-					print("SOMETHING IS SERIOUSLY WRONG!!!")
+					logger.error("SOMETHING IS SERIOUSLY WRONG!!!")
 
 		except ApiError as err:
 			if err.user_message_text:
-				print(err.user_message_text)
+				logger.error(err.user_message_text)
 				sys.exit(0)
 			else:
-				print(err)
+				logger.error(err)
 				sys.exit(0)
 	
 
@@ -114,18 +114,18 @@ class DbxHandler(object):
 			response = self.dbx.files_list_folder(dbx_folder)
 			for file in response.entries:
 				if(dbx_folder.lower() == file.path_lower):
-					print("Skipping " + file.path_lower)
+					logger.debug("Skipping " + file.path_lower)
 					continue
 
 				if isinstance(file, dropbox.files.FolderMetadata):
-					print("Deleting " + file.path_lower)
+					logger.info("Deleting " + file.path_lower)
 					response = self.dbx.files_delete(file.path_lower)
 
 		except ApiError as err:
 			if err.user_message_text:
-				print(err.user_message_text)
+				logger.error(err.user_message_text)
 				sys.exit(0)
 			else:
-				print(err)
+				logger.error(err)
 				sys.exit(0)
 		

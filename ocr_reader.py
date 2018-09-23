@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-from os import listdir, walk, rename, makedirs, getcwd
+from os import listdir, walk, rename, makedirs, getcwd, remove
 from os.path import isfile, isdir, join, dirname, basename, splitext, exists, realpath, normpath
-from shutil import copy, copyfile, move
+from shutil import copy, copyfile, move, rmtree
 import subprocess
 import logging
 import argparse
@@ -61,6 +61,19 @@ def folders_in(path_to_parent):
 		if isdir(join(path_to_parent,fname)):
 			yield (join(path_to_parent,fname))
 
+
+def move_directory(root_src_dir, root_dst_dir):
+	for src_dir, dirs, files in walk(root_src_dir):
+		dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
+		if not exists(dst_dir):
+			makedirs(dst_dir)
+		for file_ in files:
+			src_file = join(src_dir, file_)
+			dst_file = join(dst_dir, file_)
+			if exists(dst_file):
+				remove(dst_file)
+			logger.debug("Moving " + src_file + " to " + dst_dir)
+			move(src_file, dst_dir)
 
 def get_all_files_in_folder(folder):
 	f = []
@@ -224,5 +237,6 @@ for guild_config in guilds:
 		if args['prod']:
 			logger.info('Moving processed event type ' + event_type_folder + ' to archive: ' + OCR_ARCHIVE_PATH)
 			makedirs(dirname(OCR_ARCHIVE_PATH), exist_ok=True)
-			move(event_type_folder, OCR_ARCHIVE_PATH)
+			move_directory(event_type_folder, OCR_ARCHIVE_PATH)
+			rmtree(event_type_folder)
 					
