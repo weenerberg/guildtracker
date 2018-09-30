@@ -59,8 +59,8 @@ def load_config(filename="config.yml"):
 
 # Get CLI and config file configuration
 args = getCLIArguments()
-cfg = load_config(args['config'])
-env_cfg = load_config(args['env_config'])
+cfg = load_config(args['config_dir'] + 'config.yml')
+env_cfg = load_config(args['config_dir'] + 'env_config.yml')
 
 
 
