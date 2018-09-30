@@ -32,8 +32,7 @@ logger.addHandler(fh)
 def getCLIArguments():
     parser = argparse.ArgumentParser(description='Generates report from swgoh guilds')
 
-    parser.add_argument('-c', '--config', action="store", required=True)
-    parser.add_argument('-e', '--env-config', action="store", required=True)
+    parser.add_argument('-c', '--config-dir', action="store", required=True)
     parser.add_argument('-g', '--guild', action="store")
     parser.add_argument('--modules', action="store_true")
     parser.add_argument('--zetas', action="store_true")
