@@ -13,22 +13,22 @@ class OcrReaderFactory(object):
 	def __init__(self):
 		pass
 
-	def get_reader(self, event_type, score_type, event_timestamp):
+	def get_reader(self, event_type, score_type):
 		if event_type.lower() == "sith":
 			if score_type.lower() == "totalscore":
-				return SithScoreReader(event_timestamp)
+				return SithScoreReader()
 		elif event_type.lower() == "tb":
 			if score_type.lower() == "totalscore":
-				return TerritoryBattleTotalScoreReader(event_timestamp)
+				return TerritoryBattleTotalScoreReader()
 			elif score_type.lower() == "totalcombatwaves":
-				return TerritoryBattleTotalCombatWavesReader(event_timestamp)
+				return TerritoryBattleTotalCombatWavesReader()
 			elif score_type.lower() == "areascores":
-				return TerritoryBattleAreaScoreReader(event_timestamp)
+				return TerritoryBattleAreaScoreReader()
 		elif event_type.lower() == "raidtickets":
 			if score_type.lower() == "lifetime":
-				return RaidticketsLifetimeReader(event_timestamp)
+				return RaidticketsLifetimeReader()
 		elif event_type.lower() == "guildtickets":
 			if score_type.lower() == "lifetime":
-				return GuildticketsLifetimeReader(event_timestamp)
+				return GuildticketsLifetimeReader()
 		
 		return None

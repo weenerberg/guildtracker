@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 class RaidticketsLifetimeReader(object):
 
-	def __init__(self, event_timestamp):
-		self.event_timestamp = event_timestamp
+	def __init__(self):
+		pass
 
 	def match_anomality(self, player, mapping):
 		for k, v in mapping.items():
@@ -22,7 +22,7 @@ class RaidticketsLifetimeReader(object):
 		    		return k	    		
 		return player
 
-	def parse_text(self, known_players, known_anomalities, text):
+	def parse_text(self, event_datetime, known_players, known_anomalities, text):
 		#Loop over players					
 		players_found = 0
 		player_rounds = []
@@ -41,18 +41,13 @@ class RaidticketsLifetimeReader(object):
 
 		names = new_lines[:len(new_lines)//2]
 		numbers = new_lines[len(new_lines)//2:]
-			#if re.match(r'\d{1,7}.*$', line):
-			#	numbers.append(line)
-			#	continue
-			#if re.match(r'\w.*$', line):
-			#	names.append(line)
 
 		logger.debug('Names found in OCR output: ' + str(names))
 		logger.debug('Numbers found in OCR output: ' + str(numbers))
 
 		for idx, name in enumerate(names):
 			player_round = {
-				'timestamp': self.event_timestamp,
+				'timestamp': event_datetime.strftime("%Y-%m-%d %H:%M:%S"),
 				'event_type': 'raidtickets',
 				'name': name,
 				'score': numbers[idx],

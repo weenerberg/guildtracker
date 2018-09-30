@@ -26,7 +26,7 @@ class DbxHandler(object):
 				"access token from the app console on the web.")
 
 		with open(src_file, 'rb') as f:
-			logger.debug("Uploading " + src_file + " to Dropbox as " + dst_file + "...")
+			logger.info("Uploading " + src_file + " to Dropbox as " + dst_file + "...")
 			try:
 				self.dbx.files_upload(f.read(), dst_file, mode=WriteMode('overwrite'))
 			except ApiError as err:
@@ -49,10 +49,12 @@ class DbxHandler(object):
 				"access token from the app console on the web.")
 
 		try:
-			response = self.dbx.files_list_folder(dbx_folder)
-			
+			response = self.dbx.files_list_folder(dbx_folder, True)
 			for file in response.entries:
-				return True
+				logger.info(file)
+				if(file.name == 'Screenshots'):
+					logger.info(file)
+					return True
 			return False
 
 		except ApiError as err:
@@ -111,13 +113,13 @@ class DbxHandler(object):
 				"access token from the app console on the web.")
 
 		try:
-			response = self.dbx.files_list_folder(dbx_folder)
+			response = self.dbx.files_list_folder(dbx_folder, True)
 			for file in response.entries:
 				if(dbx_folder.lower() == file.path_lower):
-					logger.debug("Skipping " + file.path_lower)
+					logger.info("Skipping " + file.path_lower)
 					continue
 
-				if isinstance(file, dropbox.files.FolderMetadata):
+				if isinstance(file, dropbox.files.FolderMetadata) and file.name == 'Screenshots':
 					logger.info("Deleting " + file.path_lower)
 					response = self.dbx.files_delete(file.path_lower)
 

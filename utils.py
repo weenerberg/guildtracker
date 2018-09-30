@@ -10,12 +10,12 @@ import os
 import csv
 
 def setup_new_datasource_file(headers, filepath, filename):
-    if not os.path.exists(filepath):
-        os.makedirs(filepath)
+	if not os.path.exists(filepath):
+		os.makedirs(filepath)
         
-    newFile = csv.writer(open(filepath + filename, "w"),lineterminator='\n')
-    newFile.writerow(headers)
-    return newFile
+	newFile = csv.writer(open(filepath + filename, "w"),lineterminator='\n')
+	newFile.writerow(headers)
+	return newFile
 
 def rename(dir, pattern, titlePattern):
 	for pathAndFilename in glob.iglob(os.path.join(dir, pattern)):

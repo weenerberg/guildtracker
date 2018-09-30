@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 class SithScoreReader(object):
 
-	def __init__(self, event_timestamp):
-		self.event_timestamp = event_timestamp
+	def __init__(self):
+		pass
 
 	def match_anomality(self, player, mapping):
 		for k, v in mapping.items():
@@ -22,7 +22,7 @@ class SithScoreReader(object):
 		    		return k	    		
 		return player
 
-	def parse_text(self, known_players, known_anomalities, text):
+	def parse_text(self, event_datetime, known_players, known_anomalities, text):
 		#Loop over players					
 		players_found = 0
 
@@ -44,7 +44,7 @@ class SithScoreReader(object):
 					player = "ERROR"
 
 				player_round = {
-					'timestamp': self.event_timestamp,
+					'timestamp': event_datetime.strftime("%Y-%m-%d %H:%M:%S"),
 					'event_type': "sith",
 					'name': player,
 					'score': score.replace(".","").replace(",",""),
@@ -58,7 +58,7 @@ class SithScoreReader(object):
 					score = "---"
 					player = self.match_anomality(player, known_anomalities)
 					player_round = {
-						'timestamp': self.event_timestamp,
+						'timestamp': event_datetime.strftime("%Y-%m-%d %H:%M:%S"),
 						'event_type': "sith",
 						'name': player,
 						'score': score.replace(".","").replace(",",""),
@@ -67,12 +67,9 @@ class SithScoreReader(object):
 
 
 			if player_round:
-				if not any(d['name'] == player_round['name'] for d in player_rounds):
-					player_rounds.append(player_round)
-				else:
-					logger.info("Duplicate. Skipping. " + player_round['name'])
-					
+				player_rounds.append(player_round)
 
+				
 		if players_found < 3:
 			logger.warning("Only " + str(players_found) + " players found in \n" + text)
 			
@@ -138,21 +135,9 @@ class SithScoreReader(object):
 		#print("Copy output: " + copy_outfile)
 		copy(copy_infile, copy_outfile)
 
-		stdout = ""
-		if True:
-			cmd = [path_to_tesseract, input_file, "stdout", "-l", "eng", "--user-words", path_to_user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F", "--psm", "4"]
-			ftesseract = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			stdout, stderr = ftesseract.communicate()
-			assert ftesseract.returncode == 0, stderr
-			return self.clean_ocr_output(stdout.decode())
-		else:
-			copy("test/dummy_tess", tesseract_output_file)
-			print(tesseract_output_file)
-			#print("Current wdir: " + getcwd())
-			cmd = ["type",  "test\\dummy_tess"]
-			fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-			stdout, stderr = fconvert.communicate()
-			assert fconvert.returncode == 0, stderr
-			return self.clean_ocr_output(stdout.decode())
+		cmd = [path_to_tesseract, input_file, "stdout", "-l", "eng", "--user-words", path_to_user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F", "--psm", "4"]
+		ftesseract = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdout, stderr = ftesseract.communicate()
+		assert ftesseract.returncode == 0, stderr
 
-	
+		return self.clean_ocr_output(stdout.decode())

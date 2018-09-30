@@ -5,7 +5,7 @@ from units_handler import UnitsHandler
 from unit_mappings_handler import UnitMappingsHandler
 from zeta_reviews_handler import ZetaReviewsHandler
 
-logger = logging.getLogger('guildtracker.handlerfactory')
+logger = logging.getLogger(__name__)
 
 class HandlerFactory(object):
 
@@ -22,7 +22,6 @@ class HandlerFactory(object):
 
 	def get_handler(self, type, url):
 		if type == ZetasHandler.MODULE_NAME:
-			print("Creating ZetasHandler")
 			return ZetasHandler(url, self.__guild, self.__ws_base_path, self.__dbx_base_path, self.__datasource_folder, self.__archive_folder, self.__dbx_token, self.__webhook, self.__is_test)
 		elif type == ArenaRanksHandler.MODULE_NAME:
 			if self.__is_test:

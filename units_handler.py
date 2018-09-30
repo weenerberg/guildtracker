@@ -5,7 +5,7 @@ import csv
 from utils import setup_new_datasource_file
 from datasource_handler import DatasourceHandler
 
-logger = logging.getLogger('guildtracker.unitshandler')
+logger = logging.getLogger(__name__)
 
 class UnitsHandler(DatasourceHandler):
 
