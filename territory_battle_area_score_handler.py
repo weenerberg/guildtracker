@@ -6,10 +6,12 @@ from PIL import Image
 from shutil import copy, copyfile
 import re
 import csv
+from ocr_handler import OcrHandler
 
 logger = logging.getLogger(__name__)
 
-class TerritoryBattleTotalCombatWavesReader(object):
+known_areas = ['Contested Airspace', 'Forward Trenches', 'Imperial Fleet Staging Area', 'Imperial Flank']
+class TerritoryBattleAreaScoreHandler(OcrHandler):
 
 	def __init__(self, event_timestamp):
 		self.event_timestamp = event_timestamp
@@ -28,9 +30,10 @@ class TerritoryBattleTotalCombatWavesReader(object):
 
 		player_rounds = []
 
-		for player in known_players:
-			score = ""
-			regex = '(?<=' + re.escape(player) + ').*?(\d{1,3}(?:[.,]\d{3})*)$'
+		print(text)
+
+		for area in known_areas:
+			regex = '(?<=' + re.escape(area) + ').*?(\d{1,3}(?:[ .,]\d{3})*) / (\d{1,3}(?:[ .,]\d{3})*)'
 			m = re.search(regex, text, re.DOTALL | re.MULTILINE)
 
 			player_round = {}
@@ -38,33 +41,21 @@ class TerritoryBattleTotalCombatWavesReader(object):
 			if m is not None:
 				players_found = players_found + 1
 				score = m.group(1)
-
-				player = self.match_anomality(player, known_anomalities)
-				if player == None:
-					player = "ERROR"
+				max_score = m.group(2)
+				area = self.match_anomality(area, known_anomalities)
+				if area == None:
+					area = "ERROR"
 
 				player_round = {
 					'timestamp': self.event_timestamp,
 					'event_type': "tb",
-					'name': player,
-					'score': score.replace(".","").replace(",",""),
-					'score_type': "totalcombatwaves"
+					'name': area,
+					'score': score.replace(".","").replace(",","").replace(" ",""),
+					'max_score': max_score.replace(".","").replace(",","").replace(" ",""),
+					'score_type': "areascore"
 				}
 				
-			else:
-				m = re.search(re.escape(player), text, re.DOTALL | re.MULTILINE)
-				if m is not None:
-					players_found = players_found + 1
-					score = "---"
-					player = self.match_anomality(player, known_anomalities)
-					player_round = {
-						'timestamp': self.event_timestamp,
-						'event_type': "tb",
-						'name': player,
-						'score': score.replace(".","").replace(",",""),
-						'score_type': "totalcombatwaves"
-					}
-
+			
 
 			if player_round:
 				if not any(d['name'] == player_round['name'] for d in player_rounds):
@@ -83,10 +74,11 @@ class TerritoryBattleTotalCombatWavesReader(object):
 		dbx_handler.upload_file(file, dbx_output_path + filename)
 
 	def save_file(self, output_file, player_rounds):
+		logger.info("Saving file to " + output_file)
 		makedirs(dirname(output_file), exist_ok=True)
 
-		csv_writer = csv.writer(open(output_file, "w"),lineterminator='\n')
-		csv_writer.writerow(["timestamp", "player", "event_type", "score_type", "total_score"])
+		csv_writer = csv.writer(open(output_file, "w"), lineterminator='\n')
+		csv_writer.writerow(["timestamp", "player", "event_type", "score_type", "score_1"])
 
 		for player in player_rounds:
 			csv_writer.writerow([player['timestamp'], player['name'], player['event_type'], player['score_type'], player['score']])	
@@ -133,8 +125,7 @@ class TerritoryBattleTotalCombatWavesReader(object):
 
 		copy_infile = path_to_uzn + event_type.lower() + "_" + score_type.lower() + "_" + im_width +"x" + im_height + ".uzn"
 		copy_outfile = input_filepath + "/" + input_filename + ".uzn"
-		#print("Copy input: " + copy_infile)
-		#print("Copy output: " + copy_outfile)
+		
 		copy(copy_infile, copy_outfile)
 
 		cmd = [path_to_tesseract, input_file, "stdout", "-l", "eng", "--user-words", path_to_user_words, "-c", "-load_system_dawg=F", "-c", "load_freq_dawg=F", "--psm", "4"]
@@ -143,6 +134,5 @@ class TerritoryBattleTotalCombatWavesReader(object):
 		assert ftesseract.returncode == 0, stderr
 		
 		return self.clean_ocr_output(stdout.decode())
-		
 
 	

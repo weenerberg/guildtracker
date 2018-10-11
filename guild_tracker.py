@@ -109,15 +109,15 @@ for guild_config in guilds:
     if args['zetas']:
         logger.debug("Scraping zetas...")
         url = guild_config['zetas']['url']
-        
+
         zetas_handler = handler_factory.get_handler(ZetasHandler.MODULE_NAME, url)
         zetas_handler.execute(args['save_file'], False, args['upload_dbx'])
-        
+
     # Get Arena Rank
     if args['arenaranks']:
         logger.debug("Scraping arena ranks...")
         url = guild_config['arenaranks']['url']
-        
+
         arena_ranks_handler = handler_factory.get_handler(ArenaRanksHandler.MODULE_NAME, url)
         arena_ranks_handler.execute(args['save_file'], False, args['upload_dbx'])
 

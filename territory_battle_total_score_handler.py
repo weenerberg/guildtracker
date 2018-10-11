@@ -6,10 +6,11 @@ from PIL import Image
 from shutil import copy, copyfile
 import re
 import csv
+from ocr_handler import OcrHandler
 
 logger = logging.getLogger(__name__)
 
-class GuildticketsLifetimeReader(object):
+class TerritoryBattleTotalScoreHandler(OcrHandler):
 
 	def __init__(self, event_timestamp):
 		self.event_timestamp = event_timestamp
@@ -19,51 +20,62 @@ class GuildticketsLifetimeReader(object):
 		    for ano in v:
 		    	if ano == player:
 		    		logger.info("Anomality detected. Fixing. " + player + "->" + k)
-		    		return k	    		
+		    		return k   		
 		return player
 
 	def parse_text(self, known_players, known_anomalities, text):
 		#Loop over players					
 		players_found = 0
-		player_rounds = []
-		
-		lines = text.splitlines()
 
 		player_rounds = []
 
-		names = []
-		numbers = []
-		
-		new_lines = []
-		for line in lines:
-			if re.match(r'\w.*$', line):
-				new_lines.append(line)
+		for player in known_players:
+			score = ""
+			regex = '(?<=' + re.escape(player) + ').*?(\d{1,3}(?:[.,]\d{3})*)$'
+			m = re.search(regex, text, re.DOTALL | re.MULTILINE)
 
-		names = new_lines[:len(new_lines)//2]
-		numbers = new_lines[len(new_lines)//2:]
+			player_round = {}
 
-			#if re.match(r'\d{1,7}.*$', line):
-			#	numbers.append(line)
-			#	continue
-			#if re.match(r'\w.*$', line):
-			#	names.append(line)
+			if m is not None:
+				players_found = players_found + 1
+				score = m.group(1)
 
-		logger.debug('Names found in OCR output: ' + str(names))
-		logger.debug('Numbers found in OCR output: ' + str(numbers))
+				player = self.match_anomality(player, known_anomalities)
+				if player == None:
+					player = "ERROR"
 
-		for idx, name in enumerate(names):
-			player_round = {
-				'timestamp': self.event_timestamp,
-				'event_type': 'guildtickets',
-				'name': name,
-				'score': numbers[idx],
-				'score_type': 'lifetime'
-			}
-			player_rounds.append(player_round)
+				player_round = {
+					'timestamp': self.event_timestamp,
+					'event_type': "tb",
+					'name': player,
+					'score': score.replace(".","").replace(",",""),
+					'score_type': "totalscore"
+				}
+				
+			else:
+				m = re.search(re.escape(player), text, re.DOTALL | re.MULTILINE)
+				if m is not None:
+					players_found = players_found + 1
+					score = "---"
+					player = self.match_anomality(player, known_anomalities)
+					player_round = {
+						'timestamp': self.event_timestamp,
+						'event_type': "tb",
+						'name': player,
+						'score_1': score.replace(".","").replace(",",""),
+						'score_type': "totalscore"
+					}
 
 
-		if len(names) < 5:
-			logger.warning("Only " + str(len(names)) + " players found in \n" + text)
+			if player_round:
+				if not any(d['name'] == player_round['name'] for d in player_rounds):
+					player_rounds.append(player_round)
+				else:
+					logger.info("Duplicate. Skipping. " + player_round['name'])
+					
+
+		if players_found < 3:
+			logger.warning("Only " + str(players_found) + " players found in \n" + text)
 
 		return player_rounds
 
@@ -80,17 +92,16 @@ class GuildticketsLifetimeReader(object):
 		for player in player_rounds:
 			csv_writer.writerow([player['timestamp'], player['name'], player['event_type'], player['score_type'], player['score']])	
 
-		logger.debug("Writing to " + output_file)
-
 		return output_file
 
 	def clean_ocr_output(self, text):
-		text = text.replace("^\r\n$","").replace("^\n$","")
-		text = re.sub(r'Leader','',text)
-		text = re.sub(r'Member','',text)
-		text = re.sub(r'Officer','',text)
-		text = re.sub(r'Lifetime Guild','',text)
-		text = re.sub(r'Tokens Earned:','',text)
+		text = text.replace(" ies ", " ").replace(" iss ", " ").replace(" ives "," ").replace(" vies "," ").replace(" ues ", " ")
+		text = text.replace("Lvl 85", " ").replace("Lvi 85 "," ")
+		text = text.replace("HA3 "," ").replace("HAS "," ")
+
+		text = re.sub(r'[§«=—-]',' ', text)
+		text = re.sub(r'\s$','', text)
+		text = re.sub(r'#\d{1,2}',' ',text)
 		return text
 
 	def preprocess_image(self, path_to_convert, input_file, output_file):
@@ -103,6 +114,7 @@ class GuildticketsLifetimeReader(object):
 		fconvert = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stdout, stderr = fconvert.communicate()
 		assert fconvert.returncode == 0, stderr
+
 
 	def execute_ocr(self, path_to_tesseract, path_to_user_words, path_to_uzn, event_type, score_type, input_file, output_file):
 		output_filepath = dirname(realpath(output_file))
@@ -129,6 +141,7 @@ class GuildticketsLifetimeReader(object):
 		ftesseract = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stdout, stderr = ftesseract.communicate()
 		assert ftesseract.returncode == 0, stderr
-
-		return self.clean_ocr_output(stdout.decode())
 		
+		return self.clean_ocr_output(stdout.decode())
+	
+	

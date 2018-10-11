@@ -35,9 +35,14 @@ class UnitsHandler(DatasourceHandler):
 	def generate_report_text(self, prefix, suffix):
 	    pass
 
-	def get_all_members(self):
+	def get_all_member_names(self):
 		retval = []
 		players = self.data['players']
 		for player in players:
 			retval.append(player['data']['name'])
 		return retval
+
+	def get_all_members(self):
+		retval = []
+		players = self.data['players']
+		return players

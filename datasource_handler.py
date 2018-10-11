@@ -1,16 +1,19 @@
 import logging
+import sys
 import os
+from os.path import join
 import requests
 import dropbox
 from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
-from shutil import copy, copyfile
+from shutil import copy
 from utils import setup_new_datasource_file
 from datetime import datetime
+from config import Config
 from abc import ABC, abstractmethod
 
+logger = logging.getLogger(__name__)
 
-logger = logging.getLogger('guildtracker.datasourcehandler')
 
 class DatasourceHandler(ABC):
 
@@ -33,16 +36,16 @@ class DatasourceHandler(ABC):
 		return "TEST_" + self.__guild if self.__is_test else self.__guild
 
 	def get_filepath(self):
-		return self.__datasource_path + self.get_module_name() + "/"
+		return join(self.__datasource_path, self.get_module_name())
 
 	def get_archive_path(self):
-		return self.__archive_path + self.get_module_name() + "/"
+		return join(self.__archive_path, self.get_module_name())
 
 	def get_dbx_filepath(self):
-		return self.__dbx_datasource_path + self.get_module_name() + "/"
+		return join(self.__dbx_datasource_path, self.get_module_name())
 
 	def get_dbx_archive_path(self):
-		return self.__dbx_archive_path + self.get_module_name() + "/"
+		return join(self.__dbx_archive_path, self.get_module_name())
 
 	def get_filename(self, has_timestamp):
 		suffix = "_" + self.__request_timestamp.strftime(self.FILE_TS_FORMAT) if has_timestamp else ""
@@ -66,9 +69,8 @@ class DatasourceHandler(ABC):
 		pass
 
 	def execute(self, save_file, archive_file, upload_dbx, send_discord=False):
-		print("--------------Executing " + self.get_module_name() + "----------")
 		logger.debug("--------------Executing " + self.get_module_name() + "----------")
-		
+
 		if save_file:
 			print("Saving file: " + self.get_filepath() + self.get_filename(False))
 			self.write_data_to_file(archive_file)
@@ -76,7 +78,10 @@ class DatasourceHandler(ABC):
 				print("Upload to dbx: " + self.get_filepath() + self.get_filename(False))
 				self.upload_file_to_dropbox(archive_file)
 		if send_discord:
-			self.send_discord_report()
+			username = Config.CFG['discord']['username']
+			prefix = Config.CFG['discord'][self.get_module_name()]['text']
+			suffix = ""
+			self.send_discord_report(username, prefix, suffix)
 
 		logger.debug("--------------DONE!----------")
 
@@ -87,7 +92,7 @@ class DatasourceHandler(ABC):
 	def request_data(self):
 		self.__request_timestamp = datetime.now()
 
-    #
+	#
 	#
 	#
 	def write_data_to_file(self, archive_file):
@@ -115,7 +120,6 @@ class DatasourceHandler(ABC):
 	    if archive_file:
 	    	self.__upload_file_to_dropbox_helper(self.__dbx_token, self.get_archive_path() + self.get_filename(archive_file), self.get_dbx_archive_path() + self.get_filename(archive_file) )
 
-
 	def __upload_file_to_dropbox_helper(self, token, src_file, dst_file):
 		logger.debug("Creating a Dropbox object...")
 		dbx = dropbox.Dropbox(token)
@@ -141,13 +145,11 @@ class DatasourceHandler(ABC):
 					logger.debug(err)
 					sys.exit()
 
-
 	@abstractmethod
 	def generate_report_text(self, prefix, suffix):
 		pass
 
-
-	def send_discord_report(self, username, prefix = "", suffix = ""):
+	def send_discord_report(self, username, prefix="", suffix=""):
 		prefix = prefix.format(self.__guild, self.get_report_timestamp())
 		text = self.generate_report_text(prefix, suffix)
 

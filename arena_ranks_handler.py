@@ -1,16 +1,13 @@
 import logging
-import dropbox
 import re
 import requests
-from utils import setup_new_datasource_file
-from datetime import datetime
 from operator import itemgetter
-from dropbox.files import WriteMode
-from dropbox.exceptions import ApiError, AuthError
+from config import Config
 from bs4 import BeautifulSoup as bs
 from datasource_handler import DatasourceHandler
 
-logger = logging.getLogger('guildtracker.arenarankshandler')
+logger = logging.getLogger(__name__)
+
 
 class ArenaRanksHandler(DatasourceHandler):
 
@@ -26,7 +23,6 @@ class ArenaRanksHandler(DatasourceHandler):
 
 	def get_headers(self):
 		return self.HEADERS
-
 
 	def get_no_players(self):
 		print("RUNNING PROD!")
@@ -64,9 +60,8 @@ class ArenaRanksHandler(DatasourceHandler):
 				}
 				players.append(player)
 
-			i+=1
+			i += 1
 		self.data = players
-
 
 	def write_data_to_file_helper(self, csv_writer):
 		for player in self.data:
@@ -74,13 +69,13 @@ class ArenaRanksHandler(DatasourceHandler):
 
 
 	def generate_report_text(self, prefix, suffix):
-	    sorted_players = sorted(self.data, key=itemgetter('arenarank'), reverse=False)
-	    
-	    body = '`'
-	    for player in sorted_players:
-	        body += '{:<30}'.format(player['name']) + str(player['arenarank']) + '\n'
-	    body += '`'
-	    return prefix + body + suffix
+		sorted_players = sorted(self.data, key=itemgetter('arenarank'), reverse=False)
+
+		body = '`'
+		for player in sorted_players:
+			body += '{:<30}'.format(player['name']) + str(player['arenarank']) + '\n'
+		body += '`'
+		return prefix + body + suffix
 
 
 class TestArenaRanksHandler(ArenaRanksHandler):

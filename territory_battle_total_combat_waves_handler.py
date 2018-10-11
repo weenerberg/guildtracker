@@ -6,23 +6,24 @@ from PIL import Image
 from shutil import copy, copyfile
 import re
 import csv
+from ocr_handler import OcrHandler
 
 logger = logging.getLogger(__name__)
 
-class SithScoreReader(object):
+class TerritoryBattleTotalCombatWavesHandler(OcrHandler):
 
-	def __init__(self):
-		pass
+	def __init__(self, event_timestamp):
+		self.event_timestamp = event_timestamp
 
 	def match_anomality(self, player, mapping):
 		for k, v in mapping.items():
 		    for ano in v:
 		    	if ano == player:
 		    		logger.info("Anomality detected. Fixing. " + player + "->" + k)
-		    		return k	    		
+		    		return k    		
 		return player
 
-	def parse_text(self, event_datetime, known_players, known_anomalities, text):
+	def parse_text(self, known_players, known_anomalities, text):
 		#Loop over players					
 		players_found = 0
 
@@ -44,11 +45,11 @@ class SithScoreReader(object):
 					player = "ERROR"
 
 				player_round = {
-					'timestamp': event_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-					'event_type': "sith",
+					'timestamp': self.event_timestamp,
+					'event_type': "tb",
 					'name': player,
 					'score': score.replace(".","").replace(",",""),
-					'score_type': "totalscore"
+					'score_type': "totalcombatwaves"
 				}
 				
 			else:
@@ -58,21 +59,23 @@ class SithScoreReader(object):
 					score = "---"
 					player = self.match_anomality(player, known_anomalities)
 					player_round = {
-						'timestamp': event_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-						'event_type': "sith",
+						'timestamp': self.event_timestamp,
+						'event_type': "tb",
 						'name': player,
 						'score': score.replace(".","").replace(",",""),
-						'score_type': "totalscore"
+						'score_type': "totalcombatwaves"
 					}
 
 
 			if player_round:
-				player_rounds.append(player_round)
+				if not any(d['name'] == player_round['name'] for d in player_rounds):
+					player_rounds.append(player_round)
+				else:
+					logger.info("Duplicate. Skipping. " + player_round['name'])
+					
 
-				
 		if players_found < 3:
 			logger.warning("Only " + str(players_found) + " players found in \n" + text)
-			
 
 		return player_rounds
 
@@ -139,5 +142,8 @@ class SithScoreReader(object):
 		ftesseract = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		stdout, stderr = ftesseract.communicate()
 		assert ftesseract.returncode == 0, stderr
-
+		
 		return self.clean_ocr_output(stdout.decode())
+		
+
+	

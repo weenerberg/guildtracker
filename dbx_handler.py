@@ -9,16 +9,16 @@ import types
 
 logger = logging.getLogger(__name__)
 
+
 class DbxHandler(object):
 
-	def __init__(self, base_path, token):
-		self.base_path = base_path
-		
+	def __init__(self, token):
+		# self.base_path = base_path
+
 		self.dbx = dropbox.Dropbox(token)
 
-
 	def upload_file(self, src_file, dst_file):
-		
+
 		try:
 			self.dbx.users_get_current_account()
 		except AuthError as err:
@@ -40,7 +40,6 @@ class DbxHandler(object):
 					logger.error(err)
 					sys.exit(0)
 
-
 	def isFilesAvailable(self, dbx_folder):
 		try:
 			self.dbx.users_get_current_account()
@@ -52,7 +51,7 @@ class DbxHandler(object):
 			response = self.dbx.files_list_folder(dbx_folder, True)
 			for file in response.entries:
 				logger.info(file)
-				if(file.name == 'Screenshots'):
+				if(file.name.lower() == 'screenshots'):
 					logger.info(file)
 					return True
 			return False
@@ -65,7 +64,6 @@ class DbxHandler(object):
 				logger.error(err)
 				sys.exit(0)
 	
-
 	def get_all_files_and_folders(self, dbx_folder, dst_folder):
 
 		logger.debug("dbx_folder: " + dbx_folder)
@@ -85,7 +83,7 @@ class DbxHandler(object):
 
 				if isinstance(file, dropbox.files.FolderMetadata):
 					makedirs(dirname(dst_filepath), exist_ok=True)
-					
+
 				elif isinstance(file, dropbox.files.FileMetadata):
 					makedirs(dirname(dst_filepath), exist_ok=True)
 
@@ -103,7 +101,6 @@ class DbxHandler(object):
 			else:
 				logger.error(err)
 				sys.exit(0)
-	
 
 	def delete_sub_folders(self, dbx_folder):
 		try:
@@ -113,15 +110,19 @@ class DbxHandler(object):
 				"access token from the app console on the web.")
 
 		try:
+			logger.info("Deleting from dbx folder: " + dbx_folder)
+
 			response = self.dbx.files_list_folder(dbx_folder, True)
+
 			for file in response.entries:
 				if(dbx_folder.lower() == file.path_lower):
 					logger.info("Skipping " + file.path_lower)
 					continue
-
-				if isinstance(file, dropbox.files.FolderMetadata) and file.name == 'Screenshots':
+				elif isinstance(file, dropbox.files.FolderMetadata) and file.name.lower() == 'screenshots':
 					logger.info("Deleting " + file.path_lower)
 					response = self.dbx.files_delete(file.path_lower)
+				else:
+					logger.info("Skipping unknown type: " + str(file))
 
 		except ApiError as err:
 			if err.user_message_text:
@@ -130,4 +131,3 @@ class DbxHandler(object):
 			else:
 				logger.error(err)
 				sys.exit(0)
-		

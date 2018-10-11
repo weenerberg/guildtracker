@@ -4,6 +4,20 @@ discord:
     username: Big bro
     arenaranks: 
         text: "Below is the {} arena ranks per {}: \n\n"
+    sith_totalscore:
+        total:
+            text: "Below are the {} Sith scores per {}: \n"
+        over:
+            text: "Below are the {} Sith overachievers per {}: \n"
+        under:
+            text: "Below are the {} Sith underachievers per {}: \n"
+    raidtickets_lifetime:
+        total:
+            text: "Below are the {} raid ticket scores per {}: \n"
+        over:
+            text: "Below are the {} raid ticket overachievers per {}: \n"
+        under:
+            text: "Below are the {} raid ticket underachievers per {}: \n"
 global:
     unitMappings:
         url: https://swgoh.gg/api/characters/
@@ -13,17 +27,23 @@ guilds:
     -
         name: SSAinVaders
         discordReportingWebhook-test: https://discordapp.com/api/webhooks/479761773214564353/UfLrQRETwP1VE_ArJjAhL1aVemvEsF_sw3SG5wgcHMrXwsZWcSoOCOPx6bLb-LTzdP_6
-        discordReportingWebhook-prod: https://discordapp.com/api/webhooks/479589852682256385/WNWSi19RfEi1jD5ZLjuUfXnAuBO6JPUJq0rJktqqM_YwWv5x4lG3L3-OJ1i1NcuYLYa2
+        discordReportingWebhook-prod: https://discordapp.com/api/webhooks/479761773214564353/UfLrQRETwP1VE_ArJjAhL1aVemvEsF_sw3SG5wgcHMrXwsZWcSoOCOPx6bLb-LTzdP_6
+        #discordReportingWebhook-prod: https://discordapp.com/api/webhooks/479589852682256385/WNWSi19RfEi1jD5ZLjuUfXnAuBO6JPUJq0rJktqqM_YwWv5x4lG3L3-OJ1i1NcuYLYa2
+        officers: Starbuck, MrBalder, Legba, Darkside Cowboy, MSH, WeenerDroban, Sugga, Stardust, Mammon, darthpillen
+        report-exceptions: Mr Pappespratt, Jessyk Firtree
         arenaranks:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/
         zetas:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/zetas/
         guildUnits:
             url: https://swgoh.gg/api/guild/27199/
+
     -
         name: SSAinVaders2
         discordReportingWebhook-test: https://discordapp.com/api/webhooks/479761773214564353/UfLrQRETwP1VE_ArJjAhL1aVemvEsF_sw3SG5wgcHMrXwsZWcSoOCOPx6bLb-LTzdP_6
         discordReportingWebhook-prod: https://discordapp.com/api/webhooks/479589852682256385/WNWSi19RfEi1jD5ZLjuUfXnAuBO6JPUJq0rJktqqM_YwWv5x4lG3L3-OJ1i1NcuYLYa2
+        officers: Starbuck, MrBalder, Legba, Darkside Cowboy, MSH, WeenerDroban, Sugga, Stardust, Mammon, darthpillen
+        report-exceptions: Mr Pappespratt, Jessyk Firtree
         arenaranks:
             url: https://swgoh.gg/g/27199/ssa-swedish-invaders/
         zetas:
