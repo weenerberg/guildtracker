@@ -19,8 +19,10 @@ discord:
         under:
             text: "Below are the {} raid ticket underachievers per {}: \n"
 global:
-    unitMappings:
+    charMappings:
         url: https://swgoh.gg/api/characters/
+    shipMappings:
+        url: https://swgoh.gg/api/ships/
     zetaReviews:
         url: https://script.google.com/macros/s/AKfycbyq_SH4OpcbAyEGtG4ysRrvvqr4jYihrfTgQyOHfUFhR2pVYYM/exec
 guilds:

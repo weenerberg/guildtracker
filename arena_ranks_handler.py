@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ArenaRanksHandler(DatasourceHandler):
 
-	HEADERS = ["timestamp", "player", "url", "arenarank"]
+	HEADERS = ["timestamp", "player", "url", "arenarank", "fleetrank"]
 	MODULE_NAME = "arenaranks"
 
 	def __init__(self, url, guild, ws_base_path, dbx_base_path, ds_folder, archive_folder, dbx_token, webhook, is_test):
@@ -50,13 +50,16 @@ class ArenaRanksHandler(DatasourceHandler):
 
 				player_data = requests.get("https://swgoh.gg" + url)
 				player_parser = bs(player_data.content, 'lxml')
-
-				arenarank = player_parser.find(class_="panel-body").select('ul > li')[1].find('h5').get_text(strip=True)
+				
+				#arenarank = player_parser.find(class_="panel-body").select('ul > li')[1].find('h5').get_text(strip=True)
+				arenarank = player_parser.find_all("div",{"class": "current-rank-value"})[0].get_text(strip=True)
+				fleetrank = player_parser.find_all("div",{"class": "current-rank-value"})[1].get_text(strip=True)
 
 				player = {
 					'name': name,
 					'url': url + 'collection/',
-					'arenarank': int(arenarank)
+					'arenarank': int(arenarank),
+					'fleetrank': int(fleetrank)
 				}
 				players.append(player)
 
@@ -65,7 +68,7 @@ class ArenaRanksHandler(DatasourceHandler):
 
 	def write_data_to_file_helper(self, csv_writer):
 		for player in self.data:
-			csv_writer.writerow([self.get_entry_timestamp(), player['name'], player['url'], player['arenarank']])
+			csv_writer.writerow([self.get_entry_timestamp(), player['name'], player['url'], player['arenarank'], player['fleetrank']])
 
 
 	def generate_report_text(self, prefix, suffix):

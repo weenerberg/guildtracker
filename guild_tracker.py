@@ -137,9 +137,10 @@ for guild_config in guilds:
     # Get Unit Mappings
     if args['unit_mappings']:
         logger.debug("Reading unit mappings...")
-        url = cfg['global']['unitMappings']['url']
+        charsUrl = cfg['global']['charMappings']['url']
+        shipsUrl = cfg['global']['shipMappings']['url']
 
-        units_mapping_handler = handler_factory.get_handler(UnitMappingsHandler.MODULE_NAME, url)
+        units_mapping_handler = handler_factory.get_handler(UnitMappingsHandler.MODULE_NAME, [charsUrl, shipsUrl])
         units_mapping_handler.execute(args['save_file'], True, args['upload_dbx'])
 
     # Get Zeta Reviews
